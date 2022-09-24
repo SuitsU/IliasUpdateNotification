@@ -95,7 +95,7 @@ class ilUpdateNotificationJob extends ilCronJob
         $a_form->addItem($level);
 
         $options = [
-            'high' => 'Streng (Können nicht geschlossen werden!)', // TODO Müssen nach update entfernt werden (wenn $version = $newest_version)
+            'high' => 'Streng (Können nicht geschlossen werden!)', 
             'middle' => 'Mittel (Können geschlossen werden, werden nicht erneut angezeigt) [Empfohlen]',
             'low' => 'Schwach (Es gibt nur einen Log-Eintrag!)',
         ];
