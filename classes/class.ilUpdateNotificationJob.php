@@ -25,7 +25,7 @@ class ilUpdateNotificationJob extends ilCronJob
 
     public function getTitle(): string
     {
-        return 'Chris amazing '.ilUpdateNotificationPlugin::PLUGIN_NAME.' CronJob';
+        return ilUpdateNotificationPlugin::PLUGIN_NAME.' CronJob';
     }
 
     public function getDescription(): string
