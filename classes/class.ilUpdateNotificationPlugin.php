@@ -1,12 +1,13 @@
 <?php
 
 declare(strict_types=1);
+require_once('class.ilUpdateNotificationJob.php');
 
 class ilUpdateNotificationPlugin extends ilCronHookPlugin
 {
     public const PLUGIN_CLASS_NAME = ilUpdateNotificationPlugin::class;
     public const PLUGIN_ID = 'updntf';
-    public const PLUGIN_NAME = 'Update Notification Plugin';
+    public const PLUGIN_NAME = 'UpdateNotification';
 
     /** Instance of this class
      * @var self|null
@@ -33,12 +34,18 @@ class ilUpdateNotificationPlugin extends ilCronHookPlugin
         return self::PLUGIN_ID;
     }
 
-
+    /**
+     * @return ilUpdateNotificationJob[]
+     */
     public function getCronJobInstances(): array
     {
         return [new ilUpdateNotificationJob()];
     }
 
+    /**
+     * @param $a_job_id
+     * @return ilUpdateNotificationJob
+     */
     public function getCronJobInstance($a_job_id): ilUpdateNotificationJob
     {
         return new ilUpdateNotificationJob();
