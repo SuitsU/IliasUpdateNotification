@@ -2,13 +2,42 @@
 
 declare(strict_types=1); //strict_types declaration must be the very first statement in the script
 
+/**
+ * @property ilSetting $settings
+ */
 class ilUpdateNotificationJob extends ilCronJob
 {
+    /**
+     * @var string Contains the job id.
+     */
+    public const JOB_ID = 'UpdateNotificationJob';
+    /**
+     * @var string Contains the job name.
+     */
+    public const JOB_NAME = ilUpdateNotificationPlugin::PLUGIN_NAME.' CronJob';
 
     /**
-     * @var ilSetting
+     * @var string Info about whether to check for minor or only for major versions.
+     */
+    public const DEFAULT_LEVEL = 'minor';
+    /**
+     * @var string Info about how to create the notifications, dismissible or permanent.
+     */
+    public const DEFAULT_INSISTENCE = 'middle';
+    /**
+     * @var string The url is used to check if there is a newer version of Ilias on github.
+     */
+    public const DEFAULT_UPDATE_URL = 'https://github.com/ILIAS-eLearning/ILIAS/releases/tag/v';
+    /**
+     * @var string By default, there will be no emails sent.
+     */
+    public const DEFAULT_EMAIL_RECIPIENTS = '';
+
+    /**
+     * @var ilSetting Contains and manages the plugin settings.
      */
     protected $settings;
+
 
     public function __construct()
     {
@@ -20,14 +49,20 @@ class ilUpdateNotificationJob extends ilCronJob
      */
     public function getId(): string
     {
-        return "HelloWorldJob";
+        return self::JOB_ID;
     }
 
+    /**
+     * @inheritDoc
+     */
     public function getTitle(): string
     {
-        return ilUpdateNotificationPlugin::PLUGIN_NAME.' CronJob';
+        return self::JOB_NAME;
     }
 
+    /**
+     * @inheritDoc
+     */
     public function getDescription(): string
     {
         return ilUpdateNotificationPlugin::getInstance()->txt("cron_description");
@@ -66,7 +101,7 @@ class ilUpdateNotificationJob extends ilCronJob
     }
 
     /**
-     * @return bool
+     * @inheritDoc
      */
     public function hasCustomSettings(): bool
     {
@@ -74,14 +109,14 @@ class ilUpdateNotificationJob extends ilCronJob
     }
 
     /**
-     * @param ilPropertyFormGUI $a_form
+     * @ineritDoc
      */
     public function addCustomSettingsToForm(ilPropertyFormGUI $a_form)
     {
 
         $options = [
-            'minor' => 'Prüfe Minor- & Major-Updates (empfohlen)',
-            'major' => 'Prüfe nur Major-Updates',
+            'minor' => ilUpdateNotificationPlugin::getInstance()->txt("minor_option"),
+            'major' => ilUpdateNotificationPlugin::getInstance()->txt("major_option"),
         ];
 
         $level = new ilSelectInputGUI(
@@ -89,15 +124,15 @@ class ilUpdateNotificationJob extends ilCronJob
             'level'
         );
         $level->setOptions($options);
-        $level->setInfo('Wie streng soll das Plugin die Ilias Version überprüfen?');
-        $level->setValue($this->settings->get('level', 'minor'));
+        $level->setInfo(ilUpdateNotificationPlugin::getInstance()->txt("level_info"));
+        $level->setValue($this->settings->get('level', self::DEFAULT_LEVEL));
 
         $a_form->addItem($level);
 
         $options = [
-            'high' => 'Streng (Können nicht geschlossen werden!)', 
-            'middle' => 'Mittel (Können geschlossen werden, werden nicht erneut angezeigt) [Empfohlen]',
-            'low' => 'Schwach (Es gibt nur einen Log-Eintrag!)',
+            'high' => ilUpdateNotificationPlugin::getInstance()->txt("high_option"),
+            'middle' => ilUpdateNotificationPlugin::getInstance()->txt("middle_option"),
+            'low' => ilUpdateNotificationPlugin::getInstance()->txt("low_option"),
         ];
 
         $insistence = new ilSelectInputGUI(
@@ -105,28 +140,33 @@ class ilUpdateNotificationJob extends ilCronJob
             "insistence"
         );
         $insistence->setOptions($options);
-        $insistence->setInfo('Wie streng sollen die Benachrichtigungen sein?');
-        $insistence->setValue($this->settings->get('insistence', 'middle'));
+        $insistence->setInfo(ilUpdateNotificationPlugin::getInstance()->txt("insistence_info"));
+        $insistence->setValue($this->settings->get('insistence', self::DEFAULT_INSISTENCE));
 
         $a_form->addItem($insistence);
 
-        $update_url = new ilTextInputGUI('Update Check URL', 'update_url');
-        $update_url->setInfo('Zum Überprüfen genutzte URL. Sollte nicht geändert werden wenn Sie nicht genau wissen was diese Einstellung bedeutet!');
-        $update_url->setValue($this->settings->get('update_url', 'https://github.com/ILIAS-eLearning/ILIAS/releases/tag/v'));
+        $update_url = new ilTextInputGUI(
+            'Update Check URL',
+            'update_url'
+        );
+        $update_url->setInfo(ilUpdateNotificationPlugin::getInstance()->txt("update_url_info"));
+        $update_url->setValue($this->settings->get('update_url', self::DEFAULT_UPDATE_URL));
         $update_url->setRequired(true);
         $a_form->addItem($update_url);
 
-        $email_recipients = new ilTextInputGUI('Email Empfänger', 'email_recipients');
-        $email_recipients->setInfo('Leer = Keine Emails, Mehrere Empfänger mit Semicolon (;) trennen.');
-        $email_recipients->setValue($this->settings->get('email_recipients', ''));
+        $email_recipients = new ilTextInputGUI(
+            'Email Empfänger',
+            'email_recipients'
+        );
+        $email_recipients->setInfo(ilUpdateNotificationPlugin::getInstance()->txt("email_recipients_info"));
+        $email_recipients->setValue($this->settings->get('email_recipients', self::DEFAULT_EMAIL_RECIPIENTS));
         $a_form->addItem($email_recipients);
     }
 
     /**
-     * @param ilPropertyFormGUI $a_form
-     * @return bool
+     * @inheritDoc
      */
-    public function saveCustomSettings(ilPropertyFormGUI $a_form)
+    public function saveCustomSettings(ilPropertyFormGUI $a_form) :bool
     {
         $this->settings->set('level', $a_form->getInput('level'));
         $this->settings->set('insistence', $a_form->getInput('insistence'));
@@ -135,10 +175,12 @@ class ilUpdateNotificationJob extends ilCronJob
         return true;
     }
 
-    /** @return array recipients split by ; */
+    /** Return an array of email addresses
+     * @return array recipients split by ;
+     */
     public function getEmailRecipients() : array
     {
-        $recipients_str = $this->settings->get('email_recipients', '');
+        $recipients_str = $this->settings->get('email_recipients', self::DEFAULT_EMAIL_RECIPIENTS);
 
         if (str_contains($recipients_str,';'))
             $recipients = explode(';',$recipients_str);
@@ -148,31 +190,42 @@ class ilUpdateNotificationJob extends ilCronJob
         return $recipients;
     }
 
+    /** Returns a title for an adn notification
+     * @return string title
+     */
     public function getNotificationTitle() :string
     {
         return sprintf("Update Notification %s", date('[d.m.Y]'));
     }
 
+    /** Returns the insistence level (high/middle/low)
+     * @return string insistence level
+     */
     public function getInsistenceLevel() :string
     {
-        return $this->settings->get('insistence', 'middle');
+        return $this->settings->get('email_recipients', self::DEFAULT_INSISTENCE);
     }
 
+    /** Returns info about when to notify (for major or minor version)
+     * @return string level
+     */
     public function getLevel() :string
     {
-        return $this->settings->get('level', 'minor');
+        return $this->settings->get('level', self::DEFAULT_LEVEL);
     }
 
-    public function getDismissable() :bool
+    /** Whether a notification is dismissible or permanent
+     * @return bool is dismissible?
+     */
+    public function getDismissible() :bool
     {
         return ($this->getInsistenceLevel() != 'high');
     }
 
     /**
-     * Dissmissed are saved in il_adn_dismiss. Reset Notifications
-     * @param int         $id
-     * @param String      $message
-     * @param String|null $title
+     * Updates an adn notification. Dismissed are saved in il_adn_dismiss.
+     * @param int         $id of the notification to identify
+     * @param String      $body the string(html) body of the notification
      * @return void
      */
     public function updateNotification(int $id, String $body) :void
@@ -181,12 +234,18 @@ class ilUpdateNotificationJob extends ilCronJob
         $il_adn_notification->setTitle($this->getNotificationTitle());
         $il_adn_notification->setActive(true);
         $il_adn_notification->setBody($body);
-        $il_adn_notification->setDismissable($this->getDismissable());
+        $il_adn_notification->setDismissable($this->getDismissible());
         $il_adn_notification->resetForAllUsers();
         $il_adn_notification->update();
 
     }
 
+    /**
+     * Deletes an adn notification.
+     * @param int $id of the notification to identify
+     * @return void
+     * @throws Exception
+     */
     public function removeNotification(int $id) :void
     {
         try {
@@ -200,21 +259,42 @@ class ilUpdateNotificationJob extends ilCronJob
         }
     }
 
-    public function getNotificationBody($newest_version_numeric, $url='#') :string
+    /** Returns the body string for a notification
+     * @param string $newest_version_numeric number of the newest version e.g. 7.15
+     * @param string $url url to the newest version on GitHub for example
+     * @return string the body string for a notification
+     */
+    public function getNotificationBody(string $newest_version_numeric, string $url='#') :string
     {
         $version_numeric = ILIAS_VERSION_NUMERIC;
-        return "Ihre Version $version_numeric ist nicht aktuell! Die aktuelle Version ist: $newest_version_numeric  <a style='text-decoration: none; color: lightblue;' href='$url' target='_blank'>[read more...]</a>";
+        return sprintf(
+            ilUpdateNotificationPlugin::getInstance()->txt("notification_body"),
+            $version_numeric,
+            $newest_version_numeric,
+            $url
+        );
     }
 
-    public function getMailBody($newest_version_numeric, $url='#') :string
+    /** Returns the body string for an email
+     * @param string $newest_version_numeric number of the newest version e.g. 7.15
+     * @param string $url url to the newest version on GitHub for example
+     * @return string the body string for an email
+     */
+    public function getMailBody(string $newest_version_numeric, string $url='#') :string
     {
         $version_numeric = ILIAS_VERSION_NUMERIC;
-        return "Ihre Ilias-Version $version_numeric ist nicht aktuell! Die aktuelle Version ist: $newest_version_numeric. Mehr dazu auf: $url";
+        return sprintf(
+            ilUpdateNotificationPlugin::getInstance()->txt("email_body"),
+            $version_numeric,
+            $newest_version_numeric,
+            $url
+        );
     }
-
 
     /**
-     * @inheritDoc
+     * Creates an adn notification. Dismissed are saved in il_adn_dismiss.
+     * @param String      $body the string(html) body of the notification
+     * @return void
      */
     public function createNotification(String $body): void
     {
@@ -223,7 +303,7 @@ class ilUpdateNotificationJob extends ilCronJob
         $il_adn_notification->setBody($body);
         $il_adn_notification->setType(3);
         $il_adn_notification->setTypeDuringEvent(3);
-        $il_adn_notification->setDismissable($this->getDismissable());
+        $il_adn_notification->setDismissable($this->getDismissible());
         $il_adn_notification->setPermanent(true);
         $il_adn_notification->setActive(true);
         $il_adn_notification->setLimitToRoles(false);
@@ -235,7 +315,11 @@ class ilUpdateNotificationJob extends ilCronJob
         $il_adn_notification->create();
     }
 
-    public function getCurrentNotification() :array
+    /** Returns an array with infos about other notifications in the database (Containing "Update Notification" in its title)
+     * @return array|int[] an array with infos about other notifications in the database
+     * @throws Exception
+     */
+    public function getCurrentNotificationInfo() :array
     {
         /**
          * @var $ilDB ilDBInterface
@@ -244,7 +328,7 @@ class ilUpdateNotificationJob extends ilCronJob
 
         if (!$ilDB->tableExists('il_adn_notifications')) { throw new Exception('il_adn_notifications does not exist!'); }
 
-        $set = $ilDB->query("SELECT count(`id`) as `entity_amount`, max(`id`) as `highest_id`, max(`create_date`) as `newest_date` FROM il_adn_notifications WHERE `title` LIKE '%Update Notification%' AND `active` = 1;");
+        $set = $ilDB->query($this->getCurrentNotificationInfoQuery());
         $records = $ilDB->fetchAssoc($set);
         if (!empty($records)) {
             $ids = intval($records['entity_amount']);
@@ -262,10 +346,20 @@ class ilUpdateNotificationJob extends ilCronJob
             'created' => 0,
             'amount_of_notifications' => 0,
         ];
-
     }
 
-    public function checkUrl($url) :array
+    /** Query that returns infos about notifications
+     * @return string mysql query
+     */
+    public function getCurrentNotificationInfoQuery() :string {
+        return "SELECT count(`id`) as `entity_amount`, max(`id`) as `highest_id`, max(`create_date`) as `newest_date` FROM il_adn_notifications WHERE `title` LIKE '%Update Notification%' AND `active` = 1;";
+    }
+
+    /** Checks whether this url exists or not (404 = does not exist)
+     * @param String $url url to check
+     * @return array with status code (e.g. 200/404) and html content
+     */
+    public function checkUrl(string $url) :array
     {
         $ch = curl_init();
 
@@ -284,6 +378,10 @@ class ilUpdateNotificationJob extends ilCronJob
         ];
     }
 
+    /** Returns the newest (stable) major version (e.g. 7.0 or 8.0) as string
+     * @return string the newest (stable) major version (e.g. 7.0 or 8.0) as string
+     * @throws Exception
+     */
     public function getNewestMayorVersion() :string
     {
         $newest_version_numeric = strval(ILIAS_VERSION_NUMERIC);
@@ -294,7 +392,7 @@ class ilUpdateNotificationJob extends ilCronJob
         }
         $major = ($major + 1);
 
-        $url = $this->settings->get('update_url', 'https://github.com/ILIAS-eLearning/ILIAS/releases/tag/v').$major.'.'.$minor;
+        $url = $this->settings->get('update_url', self::DEFAULT_UPDATE_URL).$major.'.'.$minor;
 
         $result = $this->checkUrl($url);
 
@@ -304,10 +402,14 @@ class ilUpdateNotificationJob extends ilCronJob
             return $newest_version_numeric;
         }
         else {
-            return "$major.$minor"; // 8.0
+            return "$major.$minor";
         }
     }
 
+    /** Returns the newest (stable) minor version (e.g. 7.11 or 7.13 ...) as string
+     * @return string the newest (stable) major version (e.g. 7.11 or 7.13 ...) as string
+     * @throws Exception
+     */
     public function getNewestMinorVersion(string $newest_version_numeric = null) :string
     {
         if(is_null($newest_version_numeric)) {
@@ -320,7 +422,7 @@ class ilUpdateNotificationJob extends ilCronJob
         }
         for ($i = 0; $i <= 20; $i++) {
 
-            $url = $this->settings->get('update_url', 'https://github.com/ILIAS-eLearning/ILIAS/releases/tag/v').$major.'.'.$minor;
+            $url = $this->settings->get('update_url', self::DEFAULT_UPDATE_URL).$major.'.'.$minor;
 
             $result = $this->checkUrl($url);
 
@@ -339,8 +441,11 @@ class ilUpdateNotificationJob extends ilCronJob
         return "$major.$minor";
     }
 
-
-
+    /** Sends an emails to one or many recipients
+     * @param array  $recipients recipients in an string array ['john.doe@example.com','test@example.com']
+     * @param string $body message body to send
+     * @return void
+     */
     public function sendMail(array $recipients, string $body)
     {
         /** @var ILIAS\DI\Container $DIC */
@@ -376,7 +481,7 @@ class ilUpdateNotificationJob extends ilCronJob
         $result->setStatus(ilCronJobResult::STATUS_OK);
         $result->setCode(200);
 
-        $info = $this->getCurrentNotification();
+        $info = $this->getCurrentNotificationInfo();
 
         $version_numeric = strval(ILIAS_VERSION_NUMERIC);
 
@@ -389,7 +494,7 @@ class ilUpdateNotificationJob extends ilCronJob
             $newest_version_numeric = $this->getNewestMayorVersion();
         }
 
-        $url = $this->settings->get('update_url', 'https://github.com/ILIAS-eLearning/ILIAS/releases/tag/v').$newest_version_numeric;
+        $url = $this->settings->get('update_url', self::DEFAULT_UPDATE_URL).$newest_version_numeric;
 
         $insistence_level = $this->getInsistenceLevel();
 
@@ -397,8 +502,16 @@ class ilUpdateNotificationJob extends ilCronJob
 
             if ($insistence_level == 'low')
             {
-                ilLoggerFactory::getLogger(ilUpdateNotificationPlugin::PLUGIN_ID)->log("Ihre Version $version_numeric ist nicht aktuell! Die aktuelle Version ist: $newest_version_numeric");
-                $result->setMessage("Ihre Version $version_numeric ist nicht aktuell! Die aktuelle Version ist: $newest_version_numeric");
+                ilLoggerFactory::getLogger(ilUpdateNotificationPlugin::PLUGIN_ID)->log(sprintf(
+                    ilUpdateNotificationPlugin::getInstance()->txt('log_body'),
+                    $version_numeric,
+                    $newest_version_numeric
+                ));
+                $result->setMessage(sprintf(
+                    ilUpdateNotificationPlugin::getInstance()->txt('log_body'),
+                    $version_numeric,
+                    $newest_version_numeric
+                ));
                 return $result;
             }
 
@@ -417,16 +530,20 @@ class ilUpdateNotificationJob extends ilCronJob
             if (!empty($email_recipients[0])) {
                 $this->sendMail(
                     $email_recipients,
-                    $this->getNotificationBody($newest_version_numeric, $url)
+                    $this->getMailBody($newest_version_numeric, $url)
                 );
             }
 
-            $result->setMessage('Version nicht aktuell!');
+            $result->setMessage(sprintf(
+                ilUpdateNotificationPlugin::getInstance()->txt('log_body'),
+                $version_numeric,
+                $newest_version_numeric
+            ));
             return $result;
         }
         else {
             $this->removeNotification($info['id']);
-            $result->setMessage('Version aktuell!');
+            $result->setMessage('Die Version ist aktuell!');
             return $result;
         }
     }
