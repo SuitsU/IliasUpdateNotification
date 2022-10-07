@@ -1,12 +1,13 @@
-cron_description#:#Creates update uotifications to keep the system up to date.
-minor_option#:#Prüfe Minor- & Major-Updates (empfohlen)
-major_option#:#Prüfe nur Major-Updates
-level_info#:#Wie streng soll das Plugin die Ilias Version überprüfen?
-high_option#:#Streng (Können nicht geschlossen werden!)
-middle_option#:#Mittel (Können geschlossen werden, werden nicht erneut angezeigt) [Empfohlen]
-low_option#:#Schwach (Es gibt nur einen Log-Eintrag!)
-insistence_info#:#Wie streng sollen die Benachrichtigungen sein?
-update_url_info#:#Zum Überprüfen genutzte URL. Sollte nicht geändert werden wenn Sie nicht genau wissen was diese Einstellung bedeutet!
-email_recipients_info#:#Leer = Keine Emails, Mehrere Empfänger mit Semicolon (;) trennen.
-notification_body#:#"Ihre Version %s ist nicht aktuell! Die aktuelle Version ist: %s  <a style='text-decoration: none; color: lightblue;' href='%s' target='_blank'>[read more...]</a>"
-email_body#:#"Ihre Ilias-Version %s ist nicht aktuell! Die aktuelle Version ist: %s. Mehr dazu auf: %s"
+cron_description#:#Creates update notifications to keep the system up to date.
+minor_option#:#check for new minor & mayor versions (recommended)
+major_option#:#check only for new major versions
+level_info#:#how strict should this plugin check for updates?
+high_option#:#high (You cannot close announcement notifications)
+middle_option#:#middle (You can close notifications they are not shown again) (recommended)
+low_option#:#low (Just a log entry)
+insistence_info#:#How insistent should the announcement notifications be?
+update_url_info#:#URL used to check for new versions. (Don't change if you don't know what this is!)
+email_recipients_info#:#empty = no recipients, many recipients are divided by a semicolon (;)
+notification_body#:#"Your Ilias version %s is not up-to-date! The newest version is: %s  <a style='text-decoration: none; color: lightblue;' href='%s' target='_blank'>[read more...]</a>"
+email_body#:#"Your Ilias version %s is not up-to-date! The newest version is: %s. Read more: %s"
+log_body#:#Your Ilias version %s is not up-to-date! The newest version is: %s

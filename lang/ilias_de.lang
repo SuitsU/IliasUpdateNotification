@@ -8,6 +8,6 @@ low_option#:#Schwach (Es gibt nur einen Log-Eintrag!)
 insistence_info#:#Wie streng sollen die Benachrichtigungen sein?
 update_url_info#:#Zum Überprüfen genutzte URL. Sollte nicht geändert werden wenn Sie nicht genau wissen was diese Einstellung bedeutet!
 email_recipients_info#:#Leer = Keine Emails, Mehrere Empfänger mit Semicolon (;) trennen.
-notification_body#:#Ihre Version %s ist nicht aktuell! Die aktuelle Version ist: %s  <a style='text-decoration: none; color: lightblue;' href='%s' target='_blank'>[read more...]</a>
+notification_body#:#Ihre Version %s ist nicht aktuell! Die aktuelle Version ist: %s  <a style='text-decoration: none; color: lightblue;' href='%s' target='_blank'>[Mehr ...]</a>
 email_body#:#Ihre Ilias-Version %s ist nicht aktuell! Die aktuelle Version ist: %s. Mehr dazu auf: %s
 log_body#:#Ihre Ilias-Version %s ist nicht aktuell! Die aktuelle Version ist: %s
