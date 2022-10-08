@@ -458,13 +458,14 @@ class ilUpdateNotificationJob extends ilCronJob
             if(empty($recipient) OR !str_contains($recipient,'@')) {
                 continue;
             }
-            $mail->enqueue(
+            $mail->sendMail(
                 $recipient,
                 "",
                 "",
                 $this->getNotificationTitle(),
                 $body,
-                []
+                [],
+                false
             );
         }
 
