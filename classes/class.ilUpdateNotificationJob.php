@@ -451,6 +451,14 @@ class ilUpdateNotificationJob extends ilCronJob
         /** @var ILIAS\DI\Container $DIC */
         global $DIC;
         $sender = $DIC->user()->getId();
+        $firstname = $DIC->user()->getFirstname();
+        $lastname = $DIC->user()->getLastname();
+
+        $body = str_replace('\n',PHP_EOL, $body);
+        if(!empty($firstname))
+            $body = str_replace('[FIRST_NAME]', $firstname, $body);
+        if(!empty($lastname))
+            $body = str_replace('[LAST_NAME]', $lastname, $body);
 
         $mail = new ilMail($sender);
 
@@ -465,7 +473,7 @@ class ilUpdateNotificationJob extends ilCronJob
                 $this->getNotificationTitle(),
                 $body,
                 [],
-                false
+                true
             );
         }
 

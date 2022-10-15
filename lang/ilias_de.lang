@@ -9,5 +9,5 @@ insistence_info#:#Wie streng sollen die Benachrichtigungen sein?
 update_url_info#:#Zum Überprüfen genutzte URL. Sollte nicht geändert werden wenn Sie nicht genau wissen was diese Einstellung bedeutet!
 email_recipients_info#:#Leer = Keine Emails, Mehrere Empfänger mit Semicolon (;) trennen.
 notification_body#:#Ihre Version %s ist nicht aktuell! Die aktuelle Version ist: %s  <a style='text-decoration: none; color: lightblue;' href='%s' target='_blank'>[Mehr ...]</a>
-email_body#:#Ihre Ilias-Version %s ist nicht aktuell! Die aktuelle Version ist: %s. Mehr dazu auf: %s
+email_body#:#Hallo [FIRST_NAME] [LAST_NAME],\n\nfür die ILIAS-Installation `[CLIENT_NAME]` (URL: [ILIAS_URL]) ist ein Minor-Update verfügbar!\n\nRegelmäßige Minor-Updates sind eine wichtige Voraussetzung für den sicheren Betrieb von ILIAS. Sie senken damit das Risiko, dass ihr System durch bekannte Sicherheitslücken angegriffen werden kann.\n\nInstallierte Version: %s\nAktuelle Version: %s\n\nWeitere Informationen finden Sie hier:\n%s\n\n---\nDies ist eine Automatische Nachricht des IliasUpdateNotification-Plugins.
 log_body#:#Ihre Ilias-Version %s ist nicht aktuell! Die aktuelle Version ist: %s

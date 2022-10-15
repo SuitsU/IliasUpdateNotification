@@ -8,6 +8,6 @@ low_option#:#low (Just a log entry)
 insistence_info#:#How insistent should the announcement notifications be?
 update_url_info#:#URL used to check for new versions. (Don't change if you don't know what this is!)
 email_recipients_info#:#empty = no recipients, many recipients are divided by a semicolon (;)
-notification_body#:#"Your Ilias version %s is not up-to-date! The newest version is: %s  <a style='text-decoration: none; color: lightblue;' href='%s' target='_blank'>[read more...]</a>"
-email_body#:#"Your Ilias version %s is not up-to-date! The newest version is: %s. Read more: %s"
+notification_body#:#Your Ilias version %s is not up-to-date! The newest version is: %s  <a style='text-decoration: none; color: lightblue;' href='%s' target='_blank'>[read more...]</a>
+email_body#:#Hello [FIRST_NAME] [LAST_NAME],\n\nA minor update is available for the ILIAS installation `[CLIENT_NAME]` (URL: [ILIAS_URL])!\n\nRegular minor updates are an important requirement for the secure operation of ILIAS. They reduce the risk that your system can be attacked by known security vulnerabilities.\n\nInstalled version: %s\nCurrent version: %s\n\nMore information can be found here:\n%s\n\n---\nThis is an Automatic Message of the IliasUpdateNotification plugin.
 log_body#:#Your Ilias version %s is not up-to-date! The newest version is: %s

@@ -29,14 +29,24 @@ git clone https://github.com/SuitsU/IliasUpdateNotification.git
 Developer: [chrisIlias1993](https://github.com/chrisIlias1993)
 
 ## Info
-**Supported Languages**
+**Supported Languages** 
 
-German, English
+German, English 
 
 **Minimum ILIAS Version:** 
 
-7.0
+7.0 
 
 **Maximum ILIAS Version:** 
 
-7.999
+7.999 
+
+## TODO
+- sprache ist system sprache; supported: sprachen dann nur englisch u deutsch
+  - man könnte mit deepl oder community noch weitere sprachen einbinden
+- mails and alle admins
+- sichtbarkeit für gruppen
+  - Administration > Ankündigungen
+  - admins (id = 2)
+  - alle oder nur admins
+- plugin updates? issue #4
