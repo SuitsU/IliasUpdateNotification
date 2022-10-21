@@ -200,7 +200,7 @@ class ilUpdateNotificationJob extends ilCronJob
     }
 
     public function isLimitedToRoles() : bool {
-        return ($this->settings->get('user_groups', self::DEFAULT_USER_GROUPS) == 'all');
+        return ($this->settings->get('user_groups', self::DEFAULT_USER_GROUPS) != 'all');
     }
 
     public function getUsergroupsValue() : ?array {
@@ -272,10 +272,10 @@ class ilUpdateNotificationJob extends ilCronJob
         $il_adn_notification->setActive(true);
         $il_adn_notification->setBody($body);
         $il_adn_notification->setDismissable($this->getDismissible());
+        $il_adn_notification->resetForAllUsers();
         $il_adn_notification->setLimitToRoles($this->isLimitedToRoles());
         if($this->isLimitedToRoles())
             $il_adn_notification->setLimitedToRoleIds($this->getUsergroupsValue());
-        $il_adn_notification->resetForAllUsers();
         $il_adn_notification->update();
 
     }
