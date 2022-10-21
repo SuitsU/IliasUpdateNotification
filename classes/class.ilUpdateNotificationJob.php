@@ -25,6 +25,10 @@ class ilUpdateNotificationJob extends ilCronJob
      */
     public const DEFAULT_INSISTENCE = 'middle';
     /**
+     * @var string User group that will be notified, by default only admins.
+     */
+    public const DEFAULT_USER_GROUPS = 'admins';
+    /**
      * @var string The url is used to check if there is a newer version of Ilias on github.
      */
     public const DEFAULT_UPDATE_URL = 'https://github.com/ILIAS-eLearning/ILIAS/releases/tag/v';
@@ -140,10 +144,29 @@ class ilUpdateNotificationJob extends ilCronJob
             "insistence"
         );
         $insistence->setOptions($options);
-        $insistence->setInfo(ilUpdateNotificationPlugin::getInstance()->txt("insistence_info"));
+        $insistence->setInfo(ilUpdateNotificationPlugin::getInstance()->txt('insistence_info'));
         $insistence->setValue($this->settings->get('insistence', self::DEFAULT_INSISTENCE));
 
         $a_form->addItem($insistence);
+
+        ###
+
+        $options = [
+            'all' => ilUpdateNotificationPlugin::getInstance()->txt('all_user_groups_option'),
+            'admins' => ilUpdateNotificationPlugin::getInstance()->txt('admin_user_groups_option'),
+        ];
+
+        $user_groups = new ilSelectInputGUI(
+            'Nutzergruppen',
+            "user_groups"
+        );
+        $user_groups->setOptions($options);
+        $user_groups->setInfo(ilUpdateNotificationPlugin::getInstance()->txt('user_groups_info'));
+        $user_groups->setValue($this->settings->get('user_groups', self::DEFAULT_USER_GROUPS));
+
+        $a_form->addItem($user_groups);
+
+        ###
 
         $update_url = new ilTextInputGUI(
             'Update Check URL',
@@ -172,7 +195,21 @@ class ilUpdateNotificationJob extends ilCronJob
         $this->settings->set('insistence', $a_form->getInput('insistence'));
         $this->settings->set('update_url', $a_form->getInput('update_url'));
         $this->settings->set('email_recipients', $a_form->getInput('email_recipients'));
+        $this->settings->set('user_groups', $a_form->getInput('user_groups'));
         return true;
+    }
+
+    public function isLimitedToRoles() : bool {
+        return ($this->settings->get('user_groups', self::DEFAULT_USER_GROUPS) == 'all');
+    }
+
+    public function getUsergroupsValue() : ?array {
+        switch($this->settings->get('user_groups', self::DEFAULT_USER_GROUPS)) {
+            case 'admins':
+                return ilUpdateNotificationPlugin::ADMIN_ROLE_IDS;
+            default:
+                return null;
+        }
     }
 
     /** Return an array of email addresses
@@ -235,6 +272,9 @@ class ilUpdateNotificationJob extends ilCronJob
         $il_adn_notification->setActive(true);
         $il_adn_notification->setBody($body);
         $il_adn_notification->setDismissable($this->getDismissible());
+        $il_adn_notification->setLimitToRoles($this->isLimitedToRoles());
+        if($this->isLimitedToRoles())
+            $il_adn_notification->setLimitedToRoleIds($this->getUsergroupsValue());
         $il_adn_notification->resetForAllUsers();
         $il_adn_notification->update();
 
@@ -306,7 +346,9 @@ class ilUpdateNotificationJob extends ilCronJob
         $il_adn_notification->setDismissable($this->getDismissible());
         $il_adn_notification->setPermanent(true);
         $il_adn_notification->setActive(true);
-        $il_adn_notification->setLimitToRoles(false);
+        $il_adn_notification->setLimitToRoles($this->isLimitedToRoles());
+        if($this->isLimitedToRoles())
+            $il_adn_notification->setLimitedToRoleIds($this->getUsergroupsValue());
         $il_adn_notification->setEventStart(new DateTimeImmutable('now'));
         $il_adn_notification->setEventEnd(new DateTimeImmutable('now'));
         $il_adn_notification->setDisplayStart(new DateTimeImmutable('now'));
