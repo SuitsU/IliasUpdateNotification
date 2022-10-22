@@ -27,7 +27,7 @@ class ilUpdateNotificationJob extends ilCronJob
     /**
      * @var string User group that will be notified, by default only admins.
      */
-    public const DEFAULT_USER_GROUPS = 'admins';
+    public const DEFAULT_USER_GROUPS = ilUpdateNotificationPlugin::ADMIN_ROLE_IDS;
     /**
      * @var string The url is used to check if there is a newer version of Ilias on github.
      */
@@ -149,24 +149,21 @@ class ilUpdateNotificationJob extends ilCronJob
 
         $a_form->addItem($insistence);
 
-        ###
-
         $options = [
             'all' => ilUpdateNotificationPlugin::getInstance()->txt('all_user_groups_option'),
             'admins' => ilUpdateNotificationPlugin::getInstance()->txt('admin_user_groups_option'),
         ];
 
-        $user_groups = new ilSelectInputGUI(
-            'Nutzergruppen',
-            "user_groups"
+        $available_roles = $this->getRoles(ilRbacReview::FILTER_ALL_GLOBAL);
+        $role_multi_select = new ilMultiSelectInputGUI(
+            'Nutzergruppen Test',
+            'user_groups'
         );
-        $user_groups->setOptions($options);
-        $user_groups->setInfo(ilUpdateNotificationPlugin::getInstance()->txt('user_groups_info'));
-        $user_groups->setValue($this->settings->get('user_groups', self::DEFAULT_USER_GROUPS));
+        $role_multi_select->setOptions($available_roles);
+        $role_multi_select->setInfo(ilUpdateNotificationPlugin::getInstance()->txt('user_groups_info'));
+        $role_multi_select->setValue($this->getUsergroupsValue());
 
-        $a_form->addItem($user_groups);
-
-        ###
+        $a_form->addItem($role_multi_select);
 
         $update_url = new ilTextInputGUI(
             'Update Check URL',
@@ -187,6 +184,40 @@ class ilUpdateNotificationJob extends ilCronJob
     }
 
     /**
+     * Gets all available roles in the system via filter
+     * @see ilADNNotificationUIFormGUI::getRoles()
+     * @param $filter
+     * @return array|int[]
+     */
+    protected function getRoles($filter) : array
+    {
+        global $DIC;
+        $opt = [];
+        foreach ($DIC->rbac()->review()->getRolesByFilter($filter) as $role) {
+            $opt[$role['obj_id']] = $role['title'] . ' (' . $role['obj_id'] . ')';
+        }
+
+        return $opt;
+    }
+
+    /**
+     * Gets all available role ids
+     * @param $filter
+     * @return array|int[]
+     */
+    protected function getAllRoleIds($filter) : array
+    {
+        global $DIC;
+        $opt = [];
+        foreach ($DIC->rbac()->review()->getRolesByFilter($filter) as $role) {
+            $opt[] = $role['obj_id'];
+        }
+
+        return $opt;
+    }
+
+
+    /**
      * @inheritDoc
      */
     public function saveCustomSettings(ilPropertyFormGUI $a_form) :bool
@@ -195,21 +226,18 @@ class ilUpdateNotificationJob extends ilCronJob
         $this->settings->set('insistence', $a_form->getInput('insistence'));
         $this->settings->set('update_url', $a_form->getInput('update_url'));
         $this->settings->set('email_recipients', $a_form->getInput('email_recipients'));
-        $this->settings->set('user_groups', $a_form->getInput('user_groups'));
+        $this->settings->set('user_groups', json_encode($a_form->getInput('user_groups')));
         return true;
     }
 
     public function isLimitedToRoles() : bool {
-        return ($this->settings->get('user_groups', self::DEFAULT_USER_GROUPS) != 'all');
+        $all_available_roles = $this->getAllRoleIds(ilRbacReview::FILTER_ALL_GLOBAL);
+        $roles = json_decode($this->settings->get('user_groups', self::DEFAULT_USER_GROUPS));
+        return ($roles != $all_available_roles);
     }
 
     public function getUsergroupsValue() : ?array {
-        switch($this->settings->get('user_groups', self::DEFAULT_USER_GROUPS)) {
-            case 'admins':
-                return ilUpdateNotificationPlugin::ADMIN_ROLE_IDS;
-            default:
-                return null;
-        }
+        return json_decode($this->settings->get('user_groups', self::DEFAULT_USER_GROUPS));
     }
 
     /** Return an array of email addresses
@@ -290,9 +318,7 @@ class ilUpdateNotificationJob extends ilCronJob
     {
         try {
             $il_adn_notification = new ilADNNotification($id);
-            $il_adn_notification->setActive(false);
-            $il_adn_notification->setDisplayEnd((new \DateTimeImmutable('now')));
-            $il_adn_notification->update();
+            $il_adn_notification->delete();
         } catch (\Exception $ex) {
             ilLoggerFactory::getLogger(ilUpdateNotificationPlugin::PLUGIN_ID);
             throw $ex;
@@ -590,10 +616,12 @@ class ilUpdateNotificationJob extends ilCronJob
                 $version_numeric,
                 $newest_version_numeric
             ));
+
             return $result;
         }
         else {
-            $this->removeNotification($info['id']);
+            if(isset($info['id']) AND !empty($info['id']))
+                $this->removeNotification($info['id']);
             $result->setMessage('Die Version ist aktuell!');
             return $result;
         }

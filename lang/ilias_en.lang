@@ -3,7 +3,7 @@ minor_option#:#check for new minor & mayor versions (recommended)
 major_option#:#check only for new major versions
 level_info#:#how strict should this plugin check for updates?
 high_option#:#high (You cannot close announcement notifications)
-middle_option#:#middle (You can close notifications they are not shown again) (recommended)
+middle_option#:#middle (You can close notifications) (recommended)
 low_option#:#low (Just a log entry)
 insistence_info#:#How insistent should the announcement notifications be?
 update_url_info#:#URL used to check for new versions. (Don't change if you don't know what this is!)
