@@ -38,6 +38,13 @@ class ilUpdateNotificationJob extends ilCronJob
     public const DEFAULT_EMAIL_RECIPIENTS = '';
 
     /**
+     * @var int ADNNotification Type Error
+     */
+    public const TYPE_ERROR = 3;
+
+    public const CURLOPT_TIMEOUT = '3';
+
+    /**
      * @var ilSetting Contains and manages the plugin settings.
      */
     protected $settings;
@@ -124,7 +131,7 @@ class ilUpdateNotificationJob extends ilCronJob
         ];
 
         $level = new ilSelectInputGUI(
-            'Überprüfung',
+            ilUpdateNotificationPlugin::getInstance()->txt("level_caption"),
             'level'
         );
         $level->setOptions($options);
@@ -140,7 +147,7 @@ class ilUpdateNotificationJob extends ilCronJob
         ];
 
         $insistence = new ilSelectInputGUI(
-            'Benachrichtigungen',
+            ilUpdateNotificationPlugin::getInstance()->txt("insistence_caption"),
             "insistence"
         );
         $insistence->setOptions($options);
@@ -156,7 +163,7 @@ class ilUpdateNotificationJob extends ilCronJob
 
         $available_roles = $this->getRoles(ilRbacReview::FILTER_ALL_GLOBAL);
         $role_multi_select = new ilMultiSelectInputGUI(
-            'Nutzergruppen Test',
+            ilUpdateNotificationPlugin::getInstance()->txt("user_groups_caption"),
             'user_groups'
         );
         $role_multi_select->setOptions($available_roles);
@@ -166,7 +173,7 @@ class ilUpdateNotificationJob extends ilCronJob
         $a_form->addItem($role_multi_select);
 
         $update_url = new ilTextInputGUI(
-            'Update Check URL',
+            ilUpdateNotificationPlugin::getInstance()->txt("update_url_caption"),
             'update_url'
         );
         $update_url->setInfo(ilUpdateNotificationPlugin::getInstance()->txt("update_url_info"));
@@ -175,7 +182,7 @@ class ilUpdateNotificationJob extends ilCronJob
         $a_form->addItem($update_url);
 
         $email_recipients = new ilTextInputGUI(
-            'Email Empfänger',
+            ilUpdateNotificationPlugin::getInstance()->txt("email_recipients_caption"),
             'email_recipients'
         );
         $email_recipients->setInfo(ilUpdateNotificationPlugin::getInstance()->txt("email_recipients_info"));
@@ -194,7 +201,7 @@ class ilUpdateNotificationJob extends ilCronJob
         global $DIC;
         $opt = [];
         foreach ($DIC->rbac()->review()->getRolesByFilter($filter) as $role) {
-            $opt[$role['obj_id']] = $role['title'] . ' (' . $role['obj_id'] . ')';
+            $opt[$role['obj_id']] = $role['title'] . ' (ID: ' . $role['obj_id'] . ')';
         }
 
         return $opt;
@@ -260,7 +267,7 @@ class ilUpdateNotificationJob extends ilCronJob
      */
     public function getNotificationTitle() :string
     {
-        return sprintf("Update Notification %s", date('[d.m.Y]'));
+        return sprintf(ilUpdateNotificationPlugin::getInstance()->txt("notification_title"), date('[d.m.Y]'));
     }
 
     /** Returns the insistence level (high/middle/low)
@@ -268,7 +275,7 @@ class ilUpdateNotificationJob extends ilCronJob
      */
     public function getInsistenceLevel() :string
     {
-        return $this->settings->get('email_recipients', self::DEFAULT_INSISTENCE);
+        return $this->settings->get('insistence', self::DEFAULT_INSISTENCE);
     }
 
     /** Returns info about when to notify (for major or minor version)
@@ -302,8 +309,9 @@ class ilUpdateNotificationJob extends ilCronJob
         $il_adn_notification->setDismissable($this->getDismissible());
         $il_adn_notification->resetForAllUsers();
         $il_adn_notification->setLimitToRoles($this->isLimitedToRoles());
-        if($this->isLimitedToRoles())
+        if($this->isLimitedToRoles()) {
             $il_adn_notification->setLimitedToRoleIds($this->getUsergroupsValue());
+        }
         $il_adn_notification->update();
 
     }
@@ -320,7 +328,7 @@ class ilUpdateNotificationJob extends ilCronJob
             $il_adn_notification = new ilADNNotification($id);
             $il_adn_notification->delete();
         } catch (\Exception $ex) {
-            ilLoggerFactory::getLogger(ilUpdateNotificationPlugin::PLUGIN_ID);
+            ilLoggerFactory::getLogger(ilUpdateNotificationPlugin::PLUGIN_ID)->log($ex->getMessage());
             throw $ex;
         }
     }
@@ -349,12 +357,12 @@ class ilUpdateNotificationJob extends ilCronJob
     public function getMailBody(string $newest_version_numeric, string $url='#') :string
     {
         $version_numeric = ILIAS_VERSION_NUMERIC;
-        return sprintf(
-            ilUpdateNotificationPlugin::getInstance()->txt("email_body"),
-            $version_numeric,
-            $newest_version_numeric,
-            $url
-        );
+        $body = ilUpdateNotificationPlugin::getInstance()->txt('email_body');
+        $body = str_replace('[INSTALLED_VERSION]', $version_numeric, $body);
+        $body = str_replace('[RELEASE_VERSION]', $newest_version_numeric, $body);
+        $body = str_replace('[RELEASE_URL]', $url, $body);
+
+        return $body;
     }
 
     /**
@@ -367,14 +375,15 @@ class ilUpdateNotificationJob extends ilCronJob
         $il_adn_notification = new ilADNNotification();
         $il_adn_notification->setTitle($this->getNotificationTitle());
         $il_adn_notification->setBody($body);
-        $il_adn_notification->setType(3);
-        $il_adn_notification->setTypeDuringEvent(3);
+        $il_adn_notification->setType(self::TYPE_ERROR);
+        $il_adn_notification->setTypeDuringEvent(self::TYPE_ERROR);
         $il_adn_notification->setDismissable($this->getDismissible());
         $il_adn_notification->setPermanent(true);
         $il_adn_notification->setActive(true);
         $il_adn_notification->setLimitToRoles($this->isLimitedToRoles());
-        if($this->isLimitedToRoles())
+        if($this->isLimitedToRoles()) {
             $il_adn_notification->setLimitedToRoleIds($this->getUsergroupsValue());
+        }
         $il_adn_notification->setEventStart(new DateTimeImmutable('now'));
         $il_adn_notification->setEventEnd(new DateTimeImmutable('now'));
         $il_adn_notification->setDisplayStart(new DateTimeImmutable('now'));
@@ -423,11 +432,11 @@ class ilUpdateNotificationJob extends ilCronJob
         return "SELECT count(`id`) as `entity_amount`, max(`id`) as `highest_id`, max(`create_date`) as `newest_date` FROM il_adn_notifications WHERE `title` LIKE '%Update Notification%' AND `active` = 1;";
     }
 
-    /** Checks whether this url exists or not (404 = does not exist)
+    /** Indicates whether this url exists or not (404 = does not exist)
      * @param String $url url to check
      * @return array with status code (e.g. 200/404) and html content
      */
-    public function checkUrl(string $url) :array
+    public function fetchUrl(string $url) :array
     {
         $ch = curl_init();
 
@@ -435,7 +444,7 @@ class ilUpdateNotificationJob extends ilCronJob
 
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
         curl_setopt($ch, CURLOPT_FRESH_CONNECT, true);
-        curl_setopt($ch, CURLOPT_TIMEOUT, '3');
+        curl_setopt($ch, CURLOPT_TIMEOUT, self::CURLOPT_TIMEOUT);
         $content = curl_exec($ch);
         $status_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
@@ -446,45 +455,61 @@ class ilUpdateNotificationJob extends ilCronJob
         ];
     }
 
-    /** Returns the newest (stable) major version (e.g. 7.0 or 8.0) as string
+    /** Checks whether this url exists or not.
+     * @param String $url url to check
+     * @return bool true if exists
+     */
+    public function checkUrl(string $url) :bool
+    {
+        $result = $this->fetchUrl($url);
+
+        if ($result['status_code'] == 404) {
+            return false;
+        } else if ($result['content'] === false or empty($result['content'])) {
+            return false;
+        }
+        else {
+            return true;
+        }
+    }
+
+    /** Returns the newest (stable) major version (e.g. 7.0 or 8.0) as string. Checks for up to +5 major versions ahead and returns the first found.
      * @return string the newest (stable) major version (e.g. 7.0 or 8.0) as string
      * @throws Exception
      */
-    public function getNewestMayorVersion() :string
+    public function getNextMayorVersion() :string
     {
-        $newest_version_numeric = strval(ILIAS_VERSION_NUMERIC);
-        $major = intval(explode('.', $newest_version_numeric)[0]);
+        $current_version_numeric = strval(ILIAS_VERSION_NUMERIC);
+        $major = intval(explode('.', $current_version_numeric)[0]);
         $minor = 0;
         if ($major <= 0) {
             throw new \Exception("Major version cannot be 0 or lower!");
         }
-        $major = ($major + 1);
 
-        $url = $this->settings->get('update_url', self::DEFAULT_UPDATE_URL).$major.'.'.$minor;
+        for ($i = 0; $i <= 5; $i++) {
+            $major = ($major + 1);
 
-        $result = $this->checkUrl($url);
+            $url = $this->settings->get('update_url', self::DEFAULT_UPDATE_URL) . $major . '.' . $minor;
 
-        if ($result['status_code'] == 404) {
-            return $newest_version_numeric;
-        } else if ($result['content'] === false or empty($result['content'])) {
-            return $newest_version_numeric;
+            if ($this->checkUrl($url)) {
+                return "$major.$minor";
+            }
         }
-        else {
-            return "$major.$minor";
-        }
+
+        return $current_version_numeric;
     }
 
     /** Returns the newest (stable) minor version (e.g. 7.11 or 7.13 ...) as string
      * @return string the newest (stable) major version (e.g. 7.11 or 7.13 ...) as string
      * @throws Exception
      */
-    public function getNewestMinorVersion(string $newest_version_numeric = null) :string
+    public function getNewestMinorVersion(string $current_version_numeric = null) :string
     {
-        if(is_null($newest_version_numeric)) {
-            $newest_version_numeric = strval(ILIAS_VERSION_NUMERIC);
+        if(is_null($current_version_numeric)) {
+            $current_version_numeric = strval(ILIAS_VERSION_NUMERIC);
         }
-        $major = intval(explode('.', $newest_version_numeric)[0]);
-        $minor = intval(explode('.', $newest_version_numeric)[1]);
+        $major = intval(explode('.', $current_version_numeric)[0]);
+        $minor = intval(explode('.', $current_version_numeric)[1]);
         if ($major <= 0) {
             throw new \Exception("Major version cannot be 0 or lower!");
         }
@@ -492,17 +517,11 @@ class ilUpdateNotificationJob extends ilCronJob
 
             $url = $this->settings->get('update_url', self::DEFAULT_UPDATE_URL).$major.'.'.$minor;
 
-            $result = $this->checkUrl($url);
-
-            if ($result['status_code'] === 404) {
-                $minor = $minor - 1;
-                break;
-            }
-            if ($result['content'] === false or empty($result['content'])) {
-                $minor = $minor - 1;
-                break;
-            } else {
+            if ($this->checkUrl($url)) {
                 $minor++;
+            } else {
+                $minor = $minor - 1;
+                break;
             }
         }
 
@@ -560,33 +579,34 @@ class ilUpdateNotificationJob extends ilCronJob
 
         $info = $this->getCurrentNotificationInfo();
 
-        $version_numeric = strval(ILIAS_VERSION_NUMERIC);
+        $current_version_numeric = strval(ILIAS_VERSION_NUMERIC);
 
         if($this->getLevel() == 'minor')
         {
-            $newest_version_numeric = $this->getNewestMayorVersion();
+            $newest_version_numeric = $this->getNextMayorVersion();
             $newest_version_numeric = $this->getNewestMinorVersion($newest_version_numeric);
         }
-        else {
-            $newest_version_numeric = $this->getNewestMayorVersion();
+        else
+        {
+            $newest_version_numeric = $this->getNextMayorVersion();
         }
 
         $url = $this->settings->get('update_url', self::DEFAULT_UPDATE_URL).$newest_version_numeric;
 
         $insistence_level = $this->getInsistenceLevel();
 
-        if ($version_numeric != $newest_version_numeric) {
+        if ($current_version_numeric != $newest_version_numeric) {
 
             if ($insistence_level == 'low')
             {
                 ilLoggerFactory::getLogger(ilUpdateNotificationPlugin::PLUGIN_ID)->log(sprintf(
                     ilUpdateNotificationPlugin::getInstance()->txt('log_body'),
-                    $version_numeric,
+                    $current_version_numeric,
                     $newest_version_numeric
                 ));
                 $result->setMessage(sprintf(
                     ilUpdateNotificationPlugin::getInstance()->txt('log_body'),
-                    $version_numeric,
+                    $current_version_numeric,
                     $newest_version_numeric
                 ));
                 return $result;
@@ -613,7 +633,7 @@ class ilUpdateNotificationJob extends ilCronJob
 
             $result->setMessage(sprintf(
                 ilUpdateNotificationPlugin::getInstance()->txt('log_body'),
-                $version_numeric,
+                $current_version_numeric,
                 $newest_version_numeric
             ));
 

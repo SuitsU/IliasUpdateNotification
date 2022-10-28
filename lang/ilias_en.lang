@@ -9,8 +9,14 @@ insistence_info#:#How insistent should the announcement notifications be?
 update_url_info#:#URL used to check for new versions. (Don't change if you don't know what this is!)
 email_recipients_info#:#empty = no recipients, many recipients are divided by a semicolon (;)
 notification_body#:#Your Ilias version %s is not up-to-date! The newest version is: %s  <a style='text-decoration: none; color: lightblue;' href='%s' target='_blank'>[read more...]</a>
-email_body#:#Hello [FIRST_NAME] [LAST_NAME],\n\nA minor update is available for the ILIAS installation `[CLIENT_NAME]` (URL: [ILIAS_URL])!\n\nRegular minor updates are an important requirement for the secure operation of ILIAS. They reduce the risk that your system can be attacked by known security vulnerabilities.\n\nInstalled version: %s\nCurrent version: %s\n\nMore information can be found here:\n%s\n\n---\nThis is an Automatic Message of the IliasUpdateNotification plugin.
+email_body#:#Hello [FIRST_NAME] [LAST_NAME],\n\nA minor update is available for the ILIAS installation `[CLIENT_NAME]` (URL: [ILIAS_URL])!\n\nRegular minor updates are an important requirement for the secure operation of ILIAS. They reduce the risk that your system can be attacked by known security vulnerabilities.\n\nInstalled version: [INSTALLED_VERSION]\nCurrent version: [RELEASE_VERSION]\n\nMore information can be found here:\n[RELEASE_URL]\n\n---\nThis is an Automatic Message of the IliasUpdateNotification plugin.
 log_body#:#Your Ilias version %s is not up-to-date! The newest version is: %s
 all_user_groups_option#:#All user groups
 admin_user_groups_option#:#Administrators only
 user_groups_info#:#Which user groups should be notified.
+level_caption#:#Validation
+insistence_caption#:#Notifications
+user_groups_caption#:#User groups
+update_url_caption#:#Update Check URL
+email_recipients_caption#:#Email Recipient
+notification_title#:#Update Notification %s

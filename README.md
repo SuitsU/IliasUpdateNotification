@@ -23,7 +23,8 @@ git clone https://github.com/SuitsU/IliasUpdateNotification.git
 - Finished!
 
 ## Maintainer
-[SUITS U GmbH](https://github.com/SuitsU), support@suitsu.de
+[SUITS U GmbH](https://github.com/SuitsU), [support@suitsu.de](mailto:support@suitsu.de)
+[Christian Pietras](https://github.com/chrisIlias1993), [christian.pietras@suitsu.de](mailto:christian.pietras@suitsu.de)
 
 ## Contributor
 Developer: [chrisIlias1993](https://github.com/chrisIlias1993)
@@ -32,6 +33,8 @@ Developer: [chrisIlias1993](https://github.com/chrisIlias1993)
 **Supported Languages** 
 
 German, English 
+
+(**Note** You need to set your system language to either English or German in order for this plugin to work properly.)
 
 **Minimum ILIAS Version:** 
 
@@ -42,11 +45,7 @@ German, English
 7.999 
 
 ## TODO
-- sprache ist system sprache; supported: sprachen dann nur englisch u deutsch
+- sprache ist system sprache; supported: sprachen dann nur englisch und deutsch
   - man könnte mit deepl oder community noch weitere sprachen einbinden
-- mails and alle admins
-- sichtbarkeit für gruppen
-  - Administration > Ankündigungen
-  - admins (id = 2)
-  - alle oder nur admins
-- plugin updates? issue #4
+- plugin updates? issue #1
+- mails an alle admins issue #2
