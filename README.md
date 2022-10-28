@@ -7,9 +7,9 @@ First install and enable the [Ilias Update Notification Plugin](https://github.c
 
 Start at your ILIAS root directory
 ```bash
-mkdir -p Customizing/global/plugins/Services/Cron/CronHook/UpdateNotification
-cd Customizing/global/plugins/Services/Cron/CronHook/UpdateNotification
-git clone https://github.com/SuitsU/IliasUpdateNotification.git
+mkdir -p Customizing/global/plugins/Services/Cron/CronHook
+cd Customizing/global/plugins/Services/Cron/CronHook
+git clone https://github.com/SuitsU/IliasUpdateNotification.git UpdateNotification
 ```
 - Access to ILIAS and go to *Administration > Extending ILIAS > Plugins* in the Mainbar.
 - Look for the Update Notification plugin in the table and hit the "Actions" dropdown and select "Install".
@@ -24,6 +24,7 @@ git clone https://github.com/SuitsU/IliasUpdateNotification.git
 
 ## Maintainer
 [SUITS U GmbH](https://github.com/SuitsU), [support@suitsu.de](mailto:support@suitsu.de)
+
 [Christian Pietras](https://github.com/chrisIlias1993), [christian.pietras@suitsu.de](mailto:christian.pietras@suitsu.de)
 
 ## Contributor
