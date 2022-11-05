@@ -10,6 +10,7 @@ class ilUpdateNotificationPlugin extends ilCronHookPlugin
     public const PLUGIN_NAME = 'UpdateNotification';
     #const DEFAULT_ROLES_ADMINISTRATE_CERTIFICATES = '["2"]'; (aus anderem Plugin)
     public const ADMIN_ROLE_IDS = '["2"]';
+    public const ADMIN_ROLE_ID = 2;
 
     /** Instance of this class
      * @var self|null

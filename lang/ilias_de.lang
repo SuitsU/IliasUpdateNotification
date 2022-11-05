@@ -1,16 +1,13 @@
 cron_description#:#Erzeugt Benachrichtigungen die allen Benutzern oder Administratoren angezeigt werden können um das System aktuell zu halten.
-minor_option#:#Prüfe Minor- & Major-Updates (empfohlen)
-major_option#:#Prüfe nur Major-Updates
-level_info#:#Wie streng soll das Plugin die Ilias Version überprüfen?
 high_option#:#Streng (Können nicht geschlossen werden)
 middle_option#:#Mittel (Können geschlossen werden) (empfohlen)
 low_option#:#Schwach (Es gibt nur einen Log-Eintrag)
 insistence_info#:#Wie streng sollen die Benachrichtigungen sein?
 update_url_info#:#Zum Überprüfen genutzte URL. Sollte nicht geändert werden wenn Sie nicht genau wissen was diese Einstellung bedeutet!
-email_recipients_info#:#Leer = Keine Emails, Mehrere Empfänger mit Semicolon (;) trennen.
-notification_body#:#Ihre Version %s ist nicht aktuell! Die aktuelle Version ist: %s  <a style='text-decoration: none; color: lightblue;' href='%s' target='_blank'>[Mehr ...]</a>
-email_body#:#Hallo [FIRST_NAME] [LAST_NAME],\n\nfür die ILIAS-Installation `[CLIENT_NAME]` (URL: [ILIAS_URL]) ist ein Minor-Update verfügbar!\n\nRegelmäßige Minor-Updates sind eine wichtige Voraussetzung für den sicheren Betrieb von ILIAS. Sie senken damit das Risiko, dass ihr System durch bekannte Sicherheitslücken angegriffen werden kann.\n\nInstallierte Version: [INSTALLED_VERSION]\nAktuelle Version: [RELEASE_VERSION]\n\nWeitere Informationen finden Sie hier:\n[RELEASE_URL]\n\n---\nDies ist eine Automatische Nachricht des IliasUpdateNotification-Plugins.
-log_body#:#Ihre Ilias-Version %s ist nicht aktuell! Die aktuelle Version ist: %s
+email_recipients_info#:#Wählen sie aus, welche Gruppen benachrichtigt werden sollen.
+notification_body#:#Ihre Version %s ist nicht aktuell! Die aktuelle Version ist: %s  <a style='text-decoration: none; color: lightblue;' href='%s' target='_blank'>[Mehr ...]</a> (Neuste Minor-Version der aktuellen Installation: %s)
+email_body#:#Hallo [FIRST_NAME] [LAST_NAME],\n\nfür die ILIAS-Installation `[CLIENT_NAME]` (URL: [ILIAS_URL]) ist ein Minor-Update verfügbar!\n\nRegelmäßige Minor-Updates sind eine wichtige Voraussetzung für den sicheren Betrieb von ILIAS. Sie senken damit das Risiko, dass ihr System durch bekannte Sicherheitslücken angegriffen werden kann.\n\nInstallierte Version: [INSTALLED_VERSION]\nAktuelle Version: [RELEASE_VERSION] (Neuste Minor-Version der aktuellen Installation: [NEWEST_MINOR_VERSION])\n\nWeitere Informationen finden Sie hier:\n[RELEASE_URL]\n\n---\nDies ist eine Automatische Nachricht des IliasUpdateNotification-Plugins.
+log_body#:#Ihre Ilias-Version %s ist nicht aktuell! Die aktuelle Version ist: %s (Neuste Minor-Version der aktuellen Installation: %s)
 all_user_groups_option#:#Alle Nutzergruppen
 admin_user_groups_option#:#Nur Administratoren
 user_groups_info#:#Welche Nutzergruppen sollen benachrichtigt werden.

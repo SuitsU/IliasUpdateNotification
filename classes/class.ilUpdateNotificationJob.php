@@ -17,10 +17,6 @@ class ilUpdateNotificationJob extends ilCronJob
     public const JOB_NAME = ilUpdateNotificationPlugin::PLUGIN_NAME.' CronJob';
 
     /**
-     * @var string Info about whether to check for minor or only for major versions.
-     */
-    public const DEFAULT_LEVEL = 'minor';
-    /**
      * @var string Info about how to create the notifications, dismissible or permanent.
      */
     public const DEFAULT_INSISTENCE = 'middle';
@@ -35,7 +31,7 @@ class ilUpdateNotificationJob extends ilCronJob
     /**
      * @var string By default, there will be no emails sent.
      */
-    public const DEFAULT_EMAIL_RECIPIENTS = '';
+    public const DEFAULT_EMAIL_RECIPIENTS = [ilUpdateNotificationPlugin::ADMIN_ROLE_ID];
 
     /**
      * @var int ADNNotification Type Error
@@ -126,21 +122,6 @@ class ilUpdateNotificationJob extends ilCronJob
     {
 
         $options = [
-            'minor' => ilUpdateNotificationPlugin::getInstance()->txt("minor_option"),
-            'major' => ilUpdateNotificationPlugin::getInstance()->txt("major_option"),
-        ];
-
-        $level = new ilSelectInputGUI(
-            ilUpdateNotificationPlugin::getInstance()->txt("level_caption"),
-            'level'
-        );
-        $level->setOptions($options);
-        $level->setInfo(ilUpdateNotificationPlugin::getInstance()->txt("level_info"));
-        $level->setValue($this->settings->get('level', self::DEFAULT_LEVEL));
-
-        $a_form->addItem($level);
-
-        $options = [
             'high' => ilUpdateNotificationPlugin::getInstance()->txt("high_option"),
             'middle' => ilUpdateNotificationPlugin::getInstance()->txt("middle_option"),
             'low' => ilUpdateNotificationPlugin::getInstance()->txt("low_option"),
@@ -156,11 +137,6 @@ class ilUpdateNotificationJob extends ilCronJob
 
         $a_form->addItem($insistence);
 
-        $options = [
-            'all' => ilUpdateNotificationPlugin::getInstance()->txt('all_user_groups_option'),
-            'admins' => ilUpdateNotificationPlugin::getInstance()->txt('admin_user_groups_option'),
-        ];
-
         $available_roles = $this->getRoles(ilRbacReview::FILTER_ALL_GLOBAL);
         $role_multi_select = new ilMultiSelectInputGUI(
             ilUpdateNotificationPlugin::getInstance()->txt("user_groups_caption"),
@@ -168,7 +144,7 @@ class ilUpdateNotificationJob extends ilCronJob
         );
         $role_multi_select->setOptions($available_roles);
         $role_multi_select->setInfo(ilUpdateNotificationPlugin::getInstance()->txt('user_groups_info'));
-        $role_multi_select->setValue($this->getUsergroupsValue());
+        $role_multi_select->setValue($this->getUserGroupsValue());
 
         $a_form->addItem($role_multi_select);
 
@@ -181,13 +157,16 @@ class ilUpdateNotificationJob extends ilCronJob
         $update_url->setRequired(true);
         $a_form->addItem($update_url);
 
-        $email_recipients = new ilTextInputGUI(
+        $email_multi_select = new ilMultiSelectInputGUI(
             ilUpdateNotificationPlugin::getInstance()->txt("email_recipients_caption"),
             'email_recipients'
         );
-        $email_recipients->setInfo(ilUpdateNotificationPlugin::getInstance()->txt("email_recipients_info"));
-        $email_recipients->setValue($this->settings->get('email_recipients', self::DEFAULT_EMAIL_RECIPIENTS));
-        $a_form->addItem($email_recipients);
+        $email_multi_select->setOptions($available_roles);
+        $email_multi_select->setInfo(ilUpdateNotificationPlugin::getInstance()->txt('email_recipients_info'));
+        $email_multi_select->setValue($this->getEmailRecipientGroupsValue());
+
+        $a_form->addItem($email_multi_select);
+
     }
 
     /**
@@ -229,11 +208,10 @@ class ilUpdateNotificationJob extends ilCronJob
      */
     public function saveCustomSettings(ilPropertyFormGUI $a_form) :bool
     {
-        $this->settings->set('level', $a_form->getInput('level'));
         $this->settings->set('insistence', $a_form->getInput('insistence'));
         $this->settings->set('update_url', $a_form->getInput('update_url'));
-        $this->settings->set('email_recipients', $a_form->getInput('email_recipients'));
         $this->settings->set('user_groups', json_encode($a_form->getInput('user_groups')));
+        $this->settings->set('email_recipients', json_encode($a_form->getInput('email_recipients')));
         return true;
     }
 
@@ -243,23 +221,43 @@ class ilUpdateNotificationJob extends ilCronJob
         return ($roles != $all_available_roles);
     }
 
-    public function getUsergroupsValue() : ?array {
-        return json_decode($this->settings->get('user_groups', self::DEFAULT_USER_GROUPS));
+    /**
+     * Returns an array with all role ids to notify via email. [Default are all admins.]
+     * @return array|null Array with group ids (as strings)
+     */
+    public function getEmailRecipientGroupsValue() : ?array {
+        return json_decode($this->settings->get('email_recipients', self::DEFAULT_EMAIL_RECIPIENTS));
     }
 
-    /** Return an array of email addresses
-     * @return array recipients split by ;
+    # Does not work yet will be used in the future to notify via role distributor...
+    public function getEmailRecipientGroups() : array {
+        $email_recipients = self::DEFAULT_EMAIL_RECIPIENTS;
+        $group_ids = json_decode($this->settings->get('email_recipients', self::DEFAULT_EMAIL_RECIPIENTS));
+        foreach ($group_ids as $group_id) {
+            $email_recipients[] = "#il_role_{$group_id}";
+        }
+        return $email_recipients;
+    }
+    # Solution to make it work because getEmailRecipientGroups does not work.
+    public function getEmailRecipients(int $group_id) : array {
+        $email_recipients = [];
+
+        global $DIC;
+
+        foreach ($DIC->rbac()->review()->assignedUsers($group_id) as $user_id) {
+            $name = ilObjUser::_lookupName($user_id);
+            $email_recipients[$user_id] = $name['login'];
+        }
+
+        return $email_recipients;
+    }
+
+    /**
+     * Returns all groups to notify via anouncement
+     * @return array|null Array with group ids (as strings)
      */
-    public function getEmailRecipients() : array
-    {
-        $recipients_str = $this->settings->get('email_recipients', self::DEFAULT_EMAIL_RECIPIENTS);
-
-        if (str_contains($recipients_str,';'))
-            $recipients = explode(';',$recipients_str);
-        else
-            $recipients[0] = $recipients_str;
-
-        return $recipients;
+    public function getUserGroupsValue() : ?array {
+        return json_decode($this->settings->get('user_groups', self::DEFAULT_USER_GROUPS));
     }
 
     /** Returns a title for an adn notification
@@ -276,14 +274,6 @@ class ilUpdateNotificationJob extends ilCronJob
     public function getInsistenceLevel() :string
     {
         return $this->settings->get('insistence', self::DEFAULT_INSISTENCE);
-    }
-
-    /** Returns info about when to notify (for major or minor version)
-     * @return string level
-     */
-    public function getLevel() :string
-    {
-        return $this->settings->get('level', self::DEFAULT_LEVEL);
     }
 
     /** Whether a notification is dismissible or permanent
@@ -310,7 +300,7 @@ class ilUpdateNotificationJob extends ilCronJob
         $il_adn_notification->resetForAllUsers();
         $il_adn_notification->setLimitToRoles($this->isLimitedToRoles());
         if($this->isLimitedToRoles()) {
-            $il_adn_notification->setLimitedToRoleIds($this->getUsergroupsValue());
+            $il_adn_notification->setLimitedToRoleIds($this->getUserGroupsValue());
         }
         $il_adn_notification->update();
 
@@ -334,18 +324,20 @@ class ilUpdateNotificationJob extends ilCronJob
     }
 
     /** Returns the body string for a notification
-     * @param string $newest_version_numeric number of the newest version e.g. 7.15
+     * @param string $newest_version_numeric number of the newest version e.g. 8.15
+     * @param string $newest_minor_version number of the newest minor version of current version e.g. 7.15
      * @param string $url url to the newest version on GitHub for example
      * @return string the body string for a notification
      */
-    public function getNotificationBody(string $newest_version_numeric, string $url='#') :string
+    public function getNotificationBody(string $newest_version_numeric, string $newest_minor_version, string $url='#') :string
     {
         $version_numeric = ILIAS_VERSION_NUMERIC;
         return sprintf(
             ilUpdateNotificationPlugin::getInstance()->txt("notification_body"),
             $version_numeric,
             $newest_version_numeric,
-            $url
+            $url,
+            $newest_minor_version
         );
     }
 
@@ -354,13 +346,15 @@ class ilUpdateNotificationJob extends ilCronJob
      * @param string $url url to the newest version on GitHub for example
      * @return string the body string for an email
      */
-    public function getMailBody(string $newest_version_numeric, string $url='#') :string
+    public function getMailBody(string $newest_version_numeric, string $newest_minor_version,string $url='#') :string
     {
         $version_numeric = ILIAS_VERSION_NUMERIC;
         $body = ilUpdateNotificationPlugin::getInstance()->txt('email_body');
         $body = str_replace('[INSTALLED_VERSION]', $version_numeric, $body);
         $body = str_replace('[RELEASE_VERSION]', $newest_version_numeric, $body);
+        $body = str_replace('[NEWEST_MINOR_VERSION]', $newest_minor_version, $body);
         $body = str_replace('[RELEASE_URL]', $url, $body);
+        $body = str_replace('\n', PHP_EOL, $body);
 
         return $body;
     }
@@ -382,7 +376,7 @@ class ilUpdateNotificationJob extends ilCronJob
         $il_adn_notification->setActive(true);
         $il_adn_notification->setLimitToRoles($this->isLimitedToRoles());
         if($this->isLimitedToRoles()) {
-            $il_adn_notification->setLimitedToRoleIds($this->getUsergroupsValue());
+            $il_adn_notification->setLimitedToRoleIds($this->getUserGroupsValue());
         }
         $il_adn_notification->setEventStart(new DateTimeImmutable('now'));
         $il_adn_notification->setEventEnd(new DateTimeImmutable('now'));
@@ -477,7 +471,7 @@ class ilUpdateNotificationJob extends ilCronJob
      * @return string the newest (stable) major version (e.g. 7.0 or 8.0) as string
      * @throws Exception
      */
-    public function getNextMayorVersion() :string
+    public function getNextMajorVersion() :string
     {
         $current_version_numeric = strval(ILIAS_VERSION_NUMERIC);
         $major = intval(explode('.', $current_version_numeric)[0]);
@@ -529,31 +523,26 @@ class ilUpdateNotificationJob extends ilCronJob
     }
 
     /** Sends an emails to one or many recipients
-     * @param array  $recipients recipients in an string array ['john.doe@example.com','test@example.com']
+     * @param array  $recipients recipients in a string array ['username1','username2']
      * @param string $body message body to send
      * @return void
      */
-    public function sendMail(array $recipients, string $body)
+    public function sendMails(array $recipients, string $body)
     {
-        /** @var ILIAS\DI\Container $DIC */
         global $DIC;
-        $sender = $DIC->user()->getId();
-        $firstname = $DIC->user()->getFirstname();
-        $lastname = $DIC->user()->getLastname();
+        $mail = new ilMail($DIC->user()->id);
 
-        $body = str_replace('\n',PHP_EOL, $body);
-        if(!empty($firstname))
-            $body = str_replace('[FIRST_NAME]', $firstname, $body);
-        if(!empty($lastname))
-            $body = str_replace('[LAST_NAME]', $lastname, $body);
-
-        $mail = new ilMail($sender);
+        # This does not send mails to all users of a role, and does not replace placeholders like [Firstname]...
+        //$mail = new ilSystemNotification();
+        //$mail->setSubjectDirect($this->getNotificationTitle());
+        //$mail->setIntroductionDirect($body);
+        //$mail->sendMail($recipients); #il_role_2{id}
 
         foreach ($recipients as $recipient) {
-            if(empty($recipient) OR !str_contains($recipient,'@')) {
+            if(empty($recipient)) { # usernames are being used
                 continue;
             }
-            $mail->sendMail(
+            $return = $mail->sendMail(
                 $recipient,
                 "",
                 "",
@@ -563,7 +552,6 @@ class ilUpdateNotificationJob extends ilCronJob
                 true
             );
         }
-
     }
 
 
@@ -581,17 +569,11 @@ class ilUpdateNotificationJob extends ilCronJob
 
         $current_version_numeric = strval(ILIAS_VERSION_NUMERIC);
 
-        if($this->getLevel() == 'minor')
-        {
-            $newest_version_numeric = $this->getNextMayorVersion();
-            $newest_version_numeric = $this->getNewestMinorVersion($newest_version_numeric);
-        }
-        else
-        {
-            $newest_version_numeric = $this->getNextMayorVersion();
-        }
+        $newest_major_version_numeric = $this->getNextMajorVersion();
+        $newest_version_numeric = $this->getNewestMinorVersion($newest_major_version_numeric);
+        $newest_minor_version_numeric = $this->getNewestMinorVersion($current_version_numeric);
 
-        $url = $this->settings->get('update_url', self::DEFAULT_UPDATE_URL).$newest_version_numeric;
+        $newest_version_url = $this->settings->get('update_url', self::DEFAULT_UPDATE_URL).$newest_version_numeric;
 
         $insistence_level = $this->getInsistenceLevel();
 
@@ -602,12 +584,15 @@ class ilUpdateNotificationJob extends ilCronJob
                 ilLoggerFactory::getLogger(ilUpdateNotificationPlugin::PLUGIN_ID)->log(sprintf(
                     ilUpdateNotificationPlugin::getInstance()->txt('log_body'),
                     $current_version_numeric,
-                    $newest_version_numeric
+                    $newest_version_numeric,
+                    $newest_minor_version_numeric
+
                 ));
                 $result->setMessage(sprintf(
                     ilUpdateNotificationPlugin::getInstance()->txt('log_body'),
                     $current_version_numeric,
-                    $newest_version_numeric
+                    $newest_version_numeric,
+                    $newest_minor_version_numeric
                 ));
                 return $result;
             }
@@ -615,27 +600,56 @@ class ilUpdateNotificationJob extends ilCronJob
             if ($info['amount_of_notifications'] > 0) {
                 $this->updateNotification(
                     $info['id'],
-                    $this->getNotificationBody($newest_version_numeric, $url)
+                    $this->getNotificationBody(
+                        $newest_version_numeric,
+                        $newest_minor_version_numeric,
+                        $newest_version_url
+
+                    )
                 );
             } else {
                 $this->createNotification(
-                    $this->getNotificationBody($newest_version_numeric, $url)
+                    $this->getNotificationBody(
+                        $newest_version_numeric,
+                        $newest_minor_version_numeric,
+                        $newest_version_url
+                    )
                 );
             }
 
-            $email_recipients = $this->getEmailRecipients();
-            if (!empty($email_recipients[0])) {
-                $this->sendMail(
-                    $email_recipients,
-                    $this->getMailBody($newest_version_numeric, $url)
-                );
+            $mail_sent = false;
+            $versions_of_last_sent_mail = $this->settings->get("versions_of_last_sent_mail", "");
+            // Send only one mail for every new version.
+            if("$newest_version_numeric,$newest_minor_version_numeric" != $versions_of_last_sent_mail){
+
+                $email_recipients_groups = $this->getEmailRecipientGroupsValue();
+
+                if (!empty($email_recipients_groups)) {
+                    foreach ($email_recipients_groups as $group_id) {
+                        $email_recipients = $this->getEmailRecipients(intval($group_id));
+
+                        if (!empty($email_recipients)) {
+                            $this->sendMails(
+                                $email_recipients,
+                                $this->getMailBody(
+                                    $newest_version_numeric,
+                                    $newest_minor_version_numeric,
+                                    $newest_version_url
+                                )
+                            );
+                        }
+                    }
+                    $mail_sent = true;
+                }
+                $this->settings->set('versions_of_last_sent_mail',"$newest_version_numeric,$newest_minor_version_numeric");
             }
 
             $result->setMessage(sprintf(
                 ilUpdateNotificationPlugin::getInstance()->txt('log_body'),
                 $current_version_numeric,
-                $newest_version_numeric
-            ));
+                $newest_version_numeric,
+                $newest_minor_version_numeric
+            ).(($mail_sent)?' (Mail(s) sent)':''));
 
             return $result;
         }

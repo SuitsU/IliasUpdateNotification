@@ -45,14 +45,9 @@ German, English
 
 7.999 
 
-## TODO Notizen
-### wichtig!
-- **mails** an alle admins issue #2
-  - siehe kommunikationstab emails [First_Name] etc...
-  - #Administration@Roles "Verteiler" nutzbar?
-  - administration > benutzer&rollen > rollen > admins > benutzerzuweisung > mail an alle zugewiesenen benutzer
-- major updates 8.X format und beides anzeigen!
-### geplant für die Zukunft
+## TODOs
+### (geplant)
+- #Administration@Roles/ "Verteiler" nutzbar?
 - sprache ist system sprache; supported: sprachen dann nur englisch und deutsch
   - man könnte mit deepl oder community noch weitere sprachen einbinden
 - plugin updates? issue #3
