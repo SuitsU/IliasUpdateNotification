@@ -1,5 +1,20 @@
 Ilias Update Notification Plugin
 -------------------
+## Info
+**Supported Languages**
+
+German, English
+
+(**Note** You need to set your system language to either English or German in order for this plugin to work properly.)
+
+**Minimum ILIAS Version:**
+
+7.0
+
+**Maximum ILIAS Version:**
+
+7.999
+
 ## Installation
 This is a Plugin for automatic update announcements for Ilias for the CronHook Plugin Slot.
 
@@ -29,21 +44,6 @@ git clone https://github.com/SuitsU/IliasUpdateNotification.git UpdateNotificati
 
 ## Contributor
 Developer: [chrisIlias1993](https://github.com/chrisIlias1993)
-
-## Info
-**Supported Languages** 
-
-German, English 
-
-(**Note** You need to set your system language to either English or German in order for this plugin to work properly.)
-
-**Minimum ILIAS Version:** 
-
-7.0 
-
-**Maximum ILIAS Version:** 
-
-7.999 
 
 ## TODOs
 ### (geplant)
