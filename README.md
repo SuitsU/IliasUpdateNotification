@@ -41,14 +41,3 @@ git clone https://github.com/SuitsU/IliasUpdateNotification.git UpdateNotificati
 [SUITS U GmbH](https://github.com/SuitsU), [support@suitsu.de](mailto:support@suitsu.de)
 
 [Christian Pietras](https://github.com/chrisIlias1993), [christian.pietras@suitsu.de](mailto:christian.pietras@suitsu.de)
-
-## Contributor
-Developer: [chrisIlias1993](https://github.com/chrisIlias1993)
-
-## TODOs
-### (geplant)
-- #Administration@Roles/ "Verteiler" nutzbar?
-- sprache ist system sprache; supported: sprachen dann nur englisch und deutsch
-  - man könnte mit deepl oder community noch weitere sprachen einbinden
-- plugin updates? issue #3
-- error darstellung issue #4

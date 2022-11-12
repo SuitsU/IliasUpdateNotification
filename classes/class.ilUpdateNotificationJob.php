@@ -34,10 +34,8 @@ class ilUpdateNotificationJob extends ilCronJob
     public const DEFAULT_EMAIL_RECIPIENTS = [ilUpdateNotificationPlugin::ADMIN_ROLE_ID];
 
     /**
-     * @var int ADNNotification Type Error
+     * Timeout for curl
      */
-    public const TYPE_ERROR = 3;
-
     public const CURLOPT_TIMEOUT = '3';
 
     /**
@@ -153,7 +151,7 @@ class ilUpdateNotificationJob extends ilCronJob
             'update_url'
         );
         $update_url->setInfo(ilUpdateNotificationPlugin::getInstance()->txt("update_url_info"));
-        $update_url->setValue($this->settings->get('update_url', self::DEFAULT_UPDATE_URL));
+        $update_url->setValue($this->getUpdateUrl());
         $update_url->setRequired(true);
         $a_form->addItem($update_url);
 
@@ -268,6 +266,11 @@ class ilUpdateNotificationJob extends ilCronJob
         return sprintf(ilUpdateNotificationPlugin::getInstance()->txt("notification_title"), date('[d.m.Y]'));
     }
 
+    public function getUpdateUrl(string $version = '') :string
+    {
+        return $this->settings->get('update_url', self::DEFAULT_UPDATE_URL)."$version";
+    }
+
     /** Returns the insistence level (high/middle/low)
      * @return string insistence level
      */
@@ -282,6 +285,85 @@ class ilUpdateNotificationJob extends ilCronJob
     public function getDismissible() :bool
     {
         return ($this->getInsistenceLevel() != 'high');
+    }
+
+    public function setNotificationId(int $id) :void
+    {
+        $this->settings->set('notification_id', $id);
+    }
+
+    public function setMinorNotificationId(int $id) :void
+    {
+        $this->settings->set('minor_notification_id', $id);
+    }
+
+    public function setMajorNotificationId(int $id) :void
+    {
+        $this->settings->set('major_notification_id', $id);
+    }
+
+    public function getNotificationId() :int
+    {
+        return intval($this->settings->get('notification_id','0'));
+    }
+
+    public function getMinorNotificationId() :int
+    {
+        return intval($this->settings->get('minor_notification_id','0'));
+    }
+
+    public function getMajorNotificationId() :int
+    {
+        return intval($this->settings->get('major_notification_id','0'));
+    }
+
+    public function setNewestMinorVersion(string $version) :void
+    {
+        $this->settings->set('newest_minor_version', $version);
+    }
+
+    public function getNewestMinorVersionFromSettings() :string
+    {
+        return $this->settings->get('newest_minor_version');
+    }
+
+    public function setNextMajorVersion(string $version) :void
+    {
+        $this->settings->set('next_major_version', $version);
+    }
+
+    public function getNextMajorVersionFromSettings() :string
+    {
+        return $this->settings->get('next_major_version');
+    }
+
+    /**
+     * Creates an adn notification. Dismissed are saved in il_adn_dismiss.
+     * @param String      $body the string(html) body of the notification
+     * @return void
+     */
+    public function createNotification(String $body): void
+    {
+        $il_adn_notification = new ilADNNotification();
+        $il_adn_notification->setTitle($this->getNotificationTitle());
+        $il_adn_notification->setBody($body);
+        $il_adn_notification->setType(ilADNNotification::TYPE_ERROR);
+        $il_adn_notification->setTypeDuringEvent(ilADNNotification::TYPE_ERROR);
+        $il_adn_notification->setDismissable($this->getDismissible());
+        $il_adn_notification->setPermanent(true);
+        $il_adn_notification->setActive(true);
+        $il_adn_notification->setLimitToRoles($this->isLimitedToRoles());
+        if($this->isLimitedToRoles()) {
+            $il_adn_notification->setLimitedToRoleIds($this->getUserGroupsValue());
+        }
+        $il_adn_notification->setEventStart(new DateTimeImmutable('now'));
+        $il_adn_notification->setEventEnd(new DateTimeImmutable('now'));
+        $il_adn_notification->setDisplayStart(new DateTimeImmutable('now'));
+        $il_adn_notification->setDisplayEnd(new DateTimeImmutable('now'));
+
+        $il_adn_notification->create();
+
+        $this->setNotificationId($il_adn_notification->getId());
     }
 
     /**
@@ -329,16 +411,23 @@ class ilUpdateNotificationJob extends ilCronJob
      * @param string $url url to the newest version on GitHub for example
      * @return string the body string for a notification
      */
-    public function getNotificationBody(string $newest_version_numeric, string $newest_minor_version, string $url='#') :string
+    public function getNotificationBody(string $newest_version_numeric, string $newest_minor_version, string $url='#', string $mayor_release_url='#') :string
     {
         $version_numeric = ILIAS_VERSION_NUMERIC;
-        return sprintf(
-            ilUpdateNotificationPlugin::getInstance()->txt("notification_body"),
-            $version_numeric,
-            $newest_version_numeric,
-            $url,
-            $newest_minor_version
-        );
+        $body = ($newest_version_numeric == $newest_minor_version)?
+            ilUpdateNotificationPlugin::getInstance()->txt("notification_body_minor"):ilUpdateNotificationPlugin::getInstance()->txt("notification_body_combined");
+
+        # Not combined: at this point only minor update
+        $body = str_replace('[INSTALLED_VERSION]', $version_numeric, $body);
+        $body = str_replace('[RELEASE_VERSION]', $newest_version_numeric, $body);
+        $body = str_replace('[RELEASE_URL]', $url, $body);
+        # In case combined ... TODO Separate into 2 or 3 functions
+        $body = str_replace('[MINOR_RELEASE_URL]', $url, $body);
+        $body = str_replace('[MINOR_RELEASE_VERSION]', $newest_minor_version, $body);
+        $body = str_replace('[MAJOR_RELEASE_URL]', $mayor_release_url, $body);
+        $body = str_replace('[MAJOR_RELEASE_VERSION]', $newest_version_numeric, $body);
+
+        return $body;
     }
 
     /** Returns the body string for an email
@@ -349,81 +438,17 @@ class ilUpdateNotificationJob extends ilCronJob
     public function getMailBody(string $newest_version_numeric, string $newest_minor_version,string $url='#') :string
     {
         $version_numeric = ILIAS_VERSION_NUMERIC;
-        $body = ilUpdateNotificationPlugin::getInstance()->txt('email_body');
+        $body = ($newest_version_numeric == $newest_minor_version)?
+            ilUpdateNotificationPlugin::getInstance()->txt('email_body_minor'):ilUpdateNotificationPlugin::getInstance()->txt('email_body_combined');
+
         $body = str_replace('[INSTALLED_VERSION]', $version_numeric, $body);
-        $body = str_replace('[RELEASE_VERSION]', $newest_version_numeric, $body);
-        $body = str_replace('[NEWEST_MINOR_VERSION]', $newest_minor_version, $body);
-        $body = str_replace('[RELEASE_URL]', $url, $body);
+        $body = str_replace('[MAJOR_RELEASE_VERSION]', $newest_version_numeric, $body);
+        $body = str_replace('[MINOR_RELEASE_VERSION]', $newest_minor_version, $body);
+        $body = str_replace('[MINOR_RELEASE_URL]', $url, $body);
+        $body = str_replace('[MAJOR_RELEASE_URL]', $url, $body);
         $body = str_replace('\n', PHP_EOL, $body);
 
         return $body;
-    }
-
-    /**
-     * Creates an adn notification. Dismissed are saved in il_adn_dismiss.
-     * @param String      $body the string(html) body of the notification
-     * @return void
-     */
-    public function createNotification(String $body): void
-    {
-        $il_adn_notification = new ilADNNotification();
-        $il_adn_notification->setTitle($this->getNotificationTitle());
-        $il_adn_notification->setBody($body);
-        $il_adn_notification->setType(self::TYPE_ERROR);
-        $il_adn_notification->setTypeDuringEvent(self::TYPE_ERROR);
-        $il_adn_notification->setDismissable($this->getDismissible());
-        $il_adn_notification->setPermanent(true);
-        $il_adn_notification->setActive(true);
-        $il_adn_notification->setLimitToRoles($this->isLimitedToRoles());
-        if($this->isLimitedToRoles()) {
-            $il_adn_notification->setLimitedToRoleIds($this->getUserGroupsValue());
-        }
-        $il_adn_notification->setEventStart(new DateTimeImmutable('now'));
-        $il_adn_notification->setEventEnd(new DateTimeImmutable('now'));
-        $il_adn_notification->setDisplayStart(new DateTimeImmutable('now'));
-        $il_adn_notification->setDisplayEnd(new DateTimeImmutable('now'));
-
-        $il_adn_notification->create();
-    }
-
-    /** Returns an array with infos about other notifications in the database (Containing "Update Notification" in its title)
-     * @return array|int[] an array with infos about other notifications in the database
-     * @throws Exception
-     */
-    public function getCurrentNotificationInfo() :array
-    {
-        /**
-         * @var $ilDB ilDBInterface
-         */
-        global $ilDB;
-
-        if (!$ilDB->tableExists('il_adn_notifications')) { throw new Exception('il_adn_notifications does not exist!'); }
-
-        $set = $ilDB->query($this->getCurrentNotificationInfoQuery());
-        $records = $ilDB->fetchAssoc($set);
-        if (!empty($records)) {
-            $ids = intval($records['entity_amount']);
-            $highest_id = intval($records['highest_id']);
-            $newest_date = intval($records['newest_date']);
-
-            return [
-                'id' => $highest_id,
-                'created' => $newest_date,
-                'amount_of_notifications' => $ids,
-            ];
-        }
-        return [
-            'id' => 0,
-            'created' => 0,
-            'amount_of_notifications' => 0,
-        ];
-    }
-
-    /** Query that returns infos about notifications
-     * @return string mysql query
-     */
-    public function getCurrentNotificationInfoQuery() :string {
-        return "SELECT count(`id`) as `entity_amount`, max(`id`) as `highest_id`, max(`create_date`) as `newest_date` FROM il_adn_notifications WHERE `title` LIKE '%Update Notification%' AND `active` = 1;";
     }
 
     /** Indicates whether this url exists or not (404 = does not exist)
@@ -483,14 +508,15 @@ class ilUpdateNotificationJob extends ilCronJob
         for ($i = 0; $i <= 5; $i++) {
             $major = ($major + 1);
 
-            $url = $this->settings->get('update_url', self::DEFAULT_UPDATE_URL) . $major . '.' . $minor;
+            $url = $this->getUpdateUrl( $major . '.' . $minor);
 
+            sleep(2);
             if ($this->checkUrl($url)) {
-                return "$major.$minor";
+                return $this->getNewestMinorVersion("$major.$minor");
             }
         }
 
-        return $current_version_numeric;
+        return $this->getNewestMinorVersion($current_version_numeric);
     }
 
     /** Returns the newest (stable) minor version (e.g. 7.11 or 7.13 ...) as string
@@ -509,8 +535,9 @@ class ilUpdateNotificationJob extends ilCronJob
         }
         for ($i = 0; $i <= 20; $i++) {
 
-            $url = $this->settings->get('update_url', self::DEFAULT_UPDATE_URL).$major.'.'.$minor;
+            $url = $this->getUpdateUrl($major.'.'.$minor);
 
+            sleep(2);
             if ($this->checkUrl($url)) {
                 $minor++;
             } else {
@@ -542,7 +569,7 @@ class ilUpdateNotificationJob extends ilCronJob
             if(empty($recipient)) { # usernames are being used
                 continue;
             }
-            $return = $mail->sendMail(
+            $mail->sendMail(
                 $recipient,
                 "",
                 "",
@@ -565,52 +592,55 @@ class ilUpdateNotificationJob extends ilCronJob
         $result->setStatus(ilCronJobResult::STATUS_OK);
         $result->setCode(200);
 
-        $info = $this->getCurrentNotificationInfo();
-
         $current_version_numeric = strval(ILIAS_VERSION_NUMERIC);
 
-        $newest_major_version_numeric = $this->getNextMajorVersion();
-        $newest_version_numeric = $this->getNewestMinorVersion($newest_major_version_numeric);
+        $next_major_version_numeric = $this->getNextMajorVersion();
         $newest_minor_version_numeric = $this->getNewestMinorVersion($current_version_numeric);
 
-        $newest_version_url = $this->settings->get('update_url', self::DEFAULT_UPDATE_URL).$newest_version_numeric;
+        $newest_version_url = $this->getUpdateUrl($next_major_version_numeric);
 
         $insistence_level = $this->getInsistenceLevel();
 
-        if ($current_version_numeric != $newest_version_numeric) {
+        if ($current_version_numeric != $next_major_version_numeric || $current_version_numeric != $newest_minor_version_numeric) {
 
             if ($insistence_level == 'low')
             {
                 ilLoggerFactory::getLogger(ilUpdateNotificationPlugin::PLUGIN_ID)->log(sprintf(
                     ilUpdateNotificationPlugin::getInstance()->txt('log_body'),
                     $current_version_numeric,
-                    $newest_version_numeric,
+                    $next_major_version_numeric,
                     $newest_minor_version_numeric
 
                 ));
                 $result->setMessage(sprintf(
                     ilUpdateNotificationPlugin::getInstance()->txt('log_body'),
                     $current_version_numeric,
-                    $newest_version_numeric,
+                    $next_major_version_numeric,
                     $newest_minor_version_numeric
                 ));
                 return $result;
             }
 
-            if ($info['amount_of_notifications'] > 0) {
+            /*
+             * TODO check for getMinor...Id and getMajor...Id -> create new notifications for each. Right now only the body differs.
+             * if (MayorVersion != MinorVersion) => createMayorNotification($next_mayor_version) and createMinorNotification($newest_minor_version) ELSE: createMinorNotification($newest_minor_version)
+             * inside createMayorNotification : save id, "output"/save different body
+             * inside createMinorNotification : save id, "output"/save different body
+             * same for e-mail
+             */
+            if (!empty($this->getNotificationId())) {
                 $this->updateNotification(
-                    $info['id'],
+                    $this->getNotificationId(),
                     $this->getNotificationBody(
-                        $newest_version_numeric,
+                        $next_major_version_numeric,
                         $newest_minor_version_numeric,
                         $newest_version_url
-
                     )
                 );
             } else {
                 $this->createNotification(
                     $this->getNotificationBody(
-                        $newest_version_numeric,
+                        $next_major_version_numeric,
                         $newest_minor_version_numeric,
                         $newest_version_url
                     )
@@ -620,7 +650,7 @@ class ilUpdateNotificationJob extends ilCronJob
             $mail_sent = false;
             $versions_of_last_sent_mail = $this->settings->get("versions_of_last_sent_mail", "");
             // Send only one mail for every new version.
-            if("$newest_version_numeric,$newest_minor_version_numeric" != $versions_of_last_sent_mail){
+            if("$next_major_version_numeric,$newest_minor_version_numeric" != $versions_of_last_sent_mail){
 
                 $email_recipients_groups = $this->getEmailRecipientGroupsValue();
 
@@ -632,7 +662,7 @@ class ilUpdateNotificationJob extends ilCronJob
                             $this->sendMails(
                                 $email_recipients,
                                 $this->getMailBody(
-                                    $newest_version_numeric,
+                                    $next_major_version_numeric,
                                     $newest_minor_version_numeric,
                                     $newest_version_url
                                 )
@@ -641,21 +671,25 @@ class ilUpdateNotificationJob extends ilCronJob
                     }
                     $mail_sent = true;
                 }
-                $this->settings->set('versions_of_last_sent_mail',"$newest_version_numeric,$newest_minor_version_numeric");
+                $this->settings->set('versions_of_last_sent_mail',"$next_major_version_numeric,$newest_minor_version_numeric");
             }
 
             $result->setMessage(sprintf(
                 ilUpdateNotificationPlugin::getInstance()->txt('log_body'),
                 $current_version_numeric,
-                $newest_version_numeric,
+                $next_major_version_numeric,
                 $newest_minor_version_numeric
-            ).(($mail_sent)?' (Mail(s) sent)':''));
+            ).(($mail_sent)?' (Mail(s) sent)':'')
+            .(' Notification ID '.$this->getNotificationId()));
+
+            $this->setNextMajorVersion($next_major_version_numeric);
+            $this->setNewestMinorVersion($newest_minor_version_numeric);
 
             return $result;
         }
         else {
-            if(isset($info['id']) AND !empty($info['id']))
-                $this->removeNotification($info['id']);
+            if(!empty($this->getNotificationId()))
+                $this->removeNotification($this->getNotificationId());
             $result->setMessage('Die Version ist aktuell!');
             return $result;
         }
