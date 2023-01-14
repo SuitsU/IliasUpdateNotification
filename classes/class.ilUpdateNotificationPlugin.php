@@ -61,4 +61,18 @@ class ilUpdateNotificationPlugin extends ilCronHookPlugin
     {
         return self::PLUGIN_NAME;
     }
+
+    /** Delete all settings when uninstalled
+     * @return void
+     */
+    protected function uninstallCustom()
+    {
+        $settings = new ilSetting(self::PLUGIN_ID);
+        $notification_id = intval($settings->get('notification_id','-1'));
+        if($notification_id > 0) {
+            $il_adn_notification = new ilADNNotification($notification_id);
+            $il_adn_notification->delete();
+        }
+        $settings->deleteAll();
+    }
 }

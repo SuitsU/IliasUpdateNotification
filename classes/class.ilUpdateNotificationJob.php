@@ -224,7 +224,8 @@ class ilUpdateNotificationJob extends ilCronJob
      * @return array|null Array with group ids (as strings)
      */
     public function getEmailRecipientGroupsValue() : ?array {
-        return json_decode($this->settings->get('email_recipients', self::DEFAULT_EMAIL_RECIPIENTS));
+        $x = json_encode(self::DEFAULT_EMAIL_RECIPIENTS);
+        return json_decode($this->settings->get('email_recipients', $x));
     }
 
     # Does not work yet will be used in the future to notify via role distributor...
