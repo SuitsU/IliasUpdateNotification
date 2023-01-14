@@ -412,7 +412,7 @@ class ilUpdateNotificationJob extends ilCronJob
      * @param string $url url to the newest version on GitHub for example
      * @return string the body string for a notification
      */
-    public function getNotificationBody(string $newest_version_numeric, string $newest_minor_version, string $url='#', string $mayor_release_url='#') :string
+    public function getNotificationBody(string $newest_version_numeric, string $newest_minor_version, string $url='#', string $major_release_url='#') :string
     {
         $version_numeric = ILIAS_VERSION_NUMERIC;
         $body = ($newest_version_numeric == $newest_minor_version)?
@@ -425,7 +425,7 @@ class ilUpdateNotificationJob extends ilCronJob
         # In case combined ... TODO Separate into 2 or 3 functions
         $body = str_replace('[MINOR_RELEASE_URL]', $url, $body);
         $body = str_replace('[MINOR_RELEASE_VERSION]', $newest_minor_version, $body);
-        $body = str_replace('[MAJOR_RELEASE_URL]', $mayor_release_url, $body);
+        $body = str_replace('[MAJOR_RELEASE_URL]', $major_release_url, $body);
         $body = str_replace('[MAJOR_RELEASE_VERSION]', $newest_version_numeric, $body);
 
         return $body;
@@ -624,8 +624,8 @@ class ilUpdateNotificationJob extends ilCronJob
 
             /*
              * TODO check for getMinor...Id and getMajor...Id -> create new notifications for each. Right now only the body differs.
-             * if (MayorVersion != MinorVersion) => createMayorNotification($next_mayor_version) and createMinorNotification($newest_minor_version) ELSE: createMinorNotification($newest_minor_version)
-             * inside createMayorNotification : save id, "output"/save different body
+             * if (MajorVersion != MinorVersion) => createMajorNotification($next_major_version) and createMinorNotification($newest_minor_version) ELSE: createMinorNotification($newest_minor_version)
+             * inside createMajorNotification : save id, "output"/save different body
              * inside createMinorNotification : save id, "output"/save different body
              * same for e-mail
              */
