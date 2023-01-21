@@ -1,4 +1,4 @@
-Ilias Update Notification Plugin
+ILIAS Update Notification Plugin
 -------------------
 ## Info
 **Supported Languages**
@@ -16,9 +16,9 @@ German, English
 7.999
 
 ## Installation
-This is a Plugin for automatic update announcements for Ilias for the CronHook Plugin Slot.
+This is a Plugin for automatic update announcements for ILIAS for the CronHook Plugin Slot.
 
-First install and enable the [Ilias Update Notification Plugin](https://github.com/SuitsU/IliasUpdateNotification).
+First install and enable the [ILIAS Update Notification Plugin](https://github.com/SuitsU/IliasUpdateNotification).
 
 Start at your ILIAS root directory
 ```bash
