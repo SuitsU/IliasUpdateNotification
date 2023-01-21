@@ -63,16 +63,38 @@ class ilUpdateNotificationPlugin extends ilCronHookPlugin
     }
 
     /** Delete all settings when uninstalled
-     * @return void
+     * @return bool
      */
-    protected function uninstallCustom()
+    protected function beforeUninstall() : bool
     {
-        $settings = new ilSetting(self::PLUGIN_ID);
-        $notification_id = intval($settings->get('notification_id','-1'));
-        if($notification_id > 0) {
-            $il_adn_notification = new ilADNNotification($notification_id);
-            $il_adn_notification->delete();
+        try {
+
+            $settings = new ilSetting(self::PLUGIN_ID);
+            $notification_id = intval($settings->get('notification_id','-1'));
+            if($notification_id > 0) {
+                $il_adn_notification = new ilADNNotification($notification_id);
+                $il_adn_notification->delete();
+            }
+
+            // $settings->deleteAll();
+
+            $settings->delete('insistence');
+            $settings->delete('user_groups');
+            $settings->delete('email_recipients');
+            $settings->delete('update_url');
+            $settings->delete('notification_id');
+            $settings->delete('minor_notification_id');
+            $settings->delete('major_notification_id');
+            $settings->delete('newest_minor_version');
+            $settings->delete('next_major_version');
+            $settings->delete('versions_of_last_sent_mail');
+
+        } catch (Exception $e) {
+
+            ilLoggerFactory::getLogger(self::PLUGIN_ID)->log($e->getMessage());
+        
         }
-        $settings->deleteAll();
+
+        return parent::beforeUninstall();
     }
 }
