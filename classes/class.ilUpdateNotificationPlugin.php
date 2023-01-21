@@ -92,7 +92,7 @@ class ilUpdateNotificationPlugin extends ilCronHookPlugin
         } catch (Exception $e) {
 
             ilLoggerFactory::getLogger(self::PLUGIN_ID)->log($e->getMessage());
-        
+
         }
 
         return parent::beforeUninstall();
