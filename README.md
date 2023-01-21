@@ -35,6 +35,12 @@ git clone https://github.com/SuitsU/IliasUpdateNotification.git UpdateNotificati
 - Schedule how often the cron-job should run (default is daily) and adjust the settings. Hit the "Save" button.
 - Finished!
 
+## Screenshots
+
+![Notification and Settings](screenshots/updatenotification1.png)
+
+![Email](screenshots/updatenotification2.png)
+
 ## Maintainer
 [SUITS U GmbH](https://github.com/SuitsU), [support@suitsu.de](mailto:support@suitsu.de)
 
