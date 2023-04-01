@@ -200,7 +200,6 @@ class ilUpdateNotificationJob extends ilCronJob
         return $opt;
     }
 
-
     /**
      * @inheritDoc
      */
@@ -410,13 +409,14 @@ class ilUpdateNotificationJob extends ilCronJob
      * @param string $newest_version_numeric number of the newest version e.g. 8.15
      * @param string $newest_minor_version number of the newest minor version of current version e.g. 7.15
      * @param string $url url to the newest version on GitHub for example
+     * @param string $major_release_url url to the newest major version on GitHub for example
      * @return string the body string for a notification
      */
     public function getNotificationBody(string $newest_version_numeric, string $newest_minor_version, string $url='#', string $major_release_url='#') :string
     {
         $version_numeric = ILIAS_VERSION_NUMERIC;
         $body = ($newest_version_numeric == $newest_minor_version)?
-            ilUpdateNotificationPlugin::getInstance()->txt("notification_body_minor"):ilUpdateNotificationPlugin::getInstance()->txt("notification_body_combined");
+            ilUpdateNotificationPlugin::getInstance()->txt("notification_body_minor") : ilUpdateNotificationPlugin::getInstance()->txt("notification_body_combined");
 
         # Not combined: at this point only minor update
         $body = str_replace('[INSTALLED_VERSION]', $version_numeric, $body);
@@ -432,21 +432,23 @@ class ilUpdateNotificationJob extends ilCronJob
     }
 
     /** Returns the body string for an email
-     * @param string $newest_version_numeric number of the newest version e.g. 7.15
-     * @param string $url url to the newest version on GitHub for example
+     * @param string $next_major_version_numeric number of the newest version e.g. 7.15
+     * @param string $newest_minor_version
+     * @param string $newest_minor_version_url url to the newest version on GitHub for example
+     * @param string $next_major_release_url url to the newest major version on GitHub for example
      * @return string the body string for an email
      */
-    public function getMailBody(string $newest_version_numeric, string $newest_minor_version,string $url='#') :string
+    public function getMailBody(string $next_major_version_numeric, string $newest_minor_version,string $newest_minor_version_url='#', string $next_major_release_url='#') :string
     {
         $version_numeric = ILIAS_VERSION_NUMERIC;
-        $body = ($newest_version_numeric == $newest_minor_version)?
+        $body = ($next_major_version_numeric == $newest_minor_version)?
             ilUpdateNotificationPlugin::getInstance()->txt('email_body_minor'):ilUpdateNotificationPlugin::getInstance()->txt('email_body_combined');
 
         $body = str_replace('[INSTALLED_VERSION]', $version_numeric, $body);
-        $body = str_replace('[MAJOR_RELEASE_VERSION]', $newest_version_numeric, $body);
+        $body = str_replace('[MAJOR_RELEASE_VERSION]', $next_major_version_numeric, $body);
         $body = str_replace('[MINOR_RELEASE_VERSION]', $newest_minor_version, $body);
-        $body = str_replace('[MINOR_RELEASE_URL]', $url, $body);
-        $body = str_replace('[MAJOR_RELEASE_URL]', $url, $body);
+        $body = str_replace('[MINOR_RELEASE_URL]', $newest_minor_version_url, $body);
+        $body = str_replace('[MAJOR_RELEASE_URL]', $next_major_release_url, $body);
         $body = str_replace('\n', PHP_EOL, $body);
 
         return $body;
@@ -582,7 +584,6 @@ class ilUpdateNotificationJob extends ilCronJob
         }
     }
 
-
     /**
      * @inheritDoc
      * @throws Exception
@@ -598,7 +599,9 @@ class ilUpdateNotificationJob extends ilCronJob
         $next_major_version_numeric = $this->getNextMajorVersion();
         $newest_minor_version_numeric = $this->getNewestMinorVersion($current_version_numeric);
 
-        $newest_version_url = $this->getUpdateUrl($next_major_version_numeric);
+        # 2 URLs needed! Major and Minor
+        $next_major_version_url = $this->getUpdateUrl($next_major_version_numeric);
+        $newest_minor_version_url = $this->getUpdateUrl($newest_minor_version_numeric);
 
         $insistence_level = $this->getInsistenceLevel();
 
@@ -611,7 +614,6 @@ class ilUpdateNotificationJob extends ilCronJob
                     $current_version_numeric,
                     $next_major_version_numeric,
                     $newest_minor_version_numeric
-
                 ));
                 $result->setMessage(sprintf(
                     ilUpdateNotificationPlugin::getInstance()->txt('log_body'),
@@ -628,6 +630,11 @@ class ilUpdateNotificationJob extends ilCronJob
              * inside createMajorNotification : save id, "output"/save different body
              * inside createMinorNotification : save id, "output"/save different body
              * same for e-mail
+             *
+             * @param string $newest_version_numeric number of the newest version e.g. 8.15
+             * @param string $newest_minor_version number of the newest minor version of current version e.g. 7.15
+             * @param string $url url to the newest version on GitHub for example
+             * @param string $major_release_url url to the newest major version on GitHub for example
              */
             if (!empty($this->getNotificationId())) {
                 $this->updateNotification(
@@ -635,7 +642,8 @@ class ilUpdateNotificationJob extends ilCronJob
                     $this->getNotificationBody(
                         $next_major_version_numeric,
                         $newest_minor_version_numeric,
-                        $newest_version_url
+                        $newest_minor_version_url,
+                        $next_major_version_url,
                     )
                 );
             } else {
@@ -643,7 +651,8 @@ class ilUpdateNotificationJob extends ilCronJob
                     $this->getNotificationBody(
                         $next_major_version_numeric,
                         $newest_minor_version_numeric,
-                        $newest_version_url
+                        $newest_minor_version_url,
+                        $next_major_version_url,
                     )
                 );
             }
@@ -662,10 +671,17 @@ class ilUpdateNotificationJob extends ilCronJob
                         if (!empty($email_recipients)) {
                             $this->sendMails(
                                 $email_recipients,
+                                /*
+                                 * @param string $next_major_version_numeric number of the newest version e.g. 7.15
+                                 * @param string $newest_minor_version
+                                 * @param string $newest_minor_version_url url to the newest version on GitHub for example
+                                 * @param string $next_major_release_url url to the newest major version on GitHub for example
+                                 */
                                 $this->getMailBody(
                                     $next_major_version_numeric,
                                     $newest_minor_version_numeric,
-                                    $newest_version_url
+                                    $newest_minor_version_url,
+                                    $next_major_version_url
                                 )
                             );
                         }
