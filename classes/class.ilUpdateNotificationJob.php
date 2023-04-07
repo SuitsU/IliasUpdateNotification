@@ -266,6 +266,16 @@ class ilUpdateNotificationJob extends ilCronJob
         return sprintf(ilUpdateNotificationPlugin::getInstance()->txt("notification_title"), date('[d.m.Y]'));
     }
 
+    /** Returns a title for an adn notification
+     * @return string title
+     */
+    public function getEmailSubject() :string
+    {
+        global $ilSetting;
+        $subject = sprintf(ilUpdateNotificationPlugin::getInstance()->txt("email_subject"), date('[d.m.Y]'));
+        return str_replace('[SHORT_NAME]',$ilSetting->get('short_inst_name', ''),$subject);
+    }
+
     public function getUpdateUrl(string $version = '') :string
     {
         return $this->settings->get('update_url', self::DEFAULT_UPDATE_URL)."$version";
@@ -576,7 +586,7 @@ class ilUpdateNotificationJob extends ilCronJob
                 $recipient,
                 "",
                 "",
-                $this->getNotificationTitle(),
+                $this->getEmailSubject(),
                 $body,
                 [],
                 true

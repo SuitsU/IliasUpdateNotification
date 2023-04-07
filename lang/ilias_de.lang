@@ -21,3 +21,4 @@ user_groups_caption#:#Nutzergruppen
 update_url_caption#:#Update Check URL
 email_recipients_caption#:#Email Empfänger
 notification_title#:#Update Notification %s
+email_subject#:#[SHORT_NAME] Update Notification %s
