@@ -416,28 +416,75 @@ class ilUpdateNotificationJob extends ilCronJob
     }
 
     /** Returns the body string for a notification
-     * @param string $newest_version_numeric number of the newest version e.g. 8.15
+     * @param string $newest_major_version number of the newest version e.g. 8.15
      * @param string $newest_minor_version number of the newest minor version of current version e.g. 7.15
-     * @param string $url url to the newest version on GitHub for example
-     * @param string $major_release_url url to the newest major version on GitHub for example
+     * @param string $url                  url to the newest version on GitHub for example
+     * @param string $major_release_url    url to the newest major version on GitHub for example
      * @return string the body string for a notification
      */
-    public function getNotificationBody(string $newest_version_numeric, string $newest_minor_version, string $url='#', string $major_release_url='#') :string
+    public function getNotificationBody(string $newest_major_version, string $newest_minor_version, string $url='#', string $major_release_url='#') :string
     {
-        $version_numeric = ILIAS_VERSION_NUMERIC;
-        $body = ($newest_version_numeric == $newest_minor_version)?
-            ilUpdateNotificationPlugin::getInstance()->txt("notification_body_minor") : ilUpdateNotificationPlugin::getInstance()->txt("notification_body_combined");
+        $current_version = ILIAS_VERSION_NUMERIC;
 
-        # Not combined: at this point only minor update
-        $body = str_replace('[INSTALLED_VERSION]', $version_numeric, $body);
-        $body = str_replace('[RELEASE_VERSION]', $newest_version_numeric, $body);
-        $body = str_replace('[RELEASE_URL]', $url, $body);
-        # In case combined ... TODO Separate into 2 or 3 functions
+        $body = $this->getNotificationBodyTemplate($newest_major_version, $newest_minor_version, $current_version);
+
+        if($this->hasNewVersions($newest_major_version,  $newest_minor_version,  $current_version))
+        {
+            # TODO Create class for replacing placeholders e.g. VersionChecker with class vars $newest_minor_version, $major_release_url, $current_version
+            $body = $this->replaceCombinedNotificationPlaceholder($body, $url, $newest_minor_version, $major_release_url, $newest_major_version);
+        }
+        else if ($this->hasNewMajorVersionOnly($newest_major_version,  $newest_minor_version,  $current_version))
+        {
+            $body = $this->replaceNotificationPlaceholder($body, $major_release_url, $newest_major_version, $current_version);
+        }
+        else // if ($newest_major_version == $newest_minor_version) ...
+        {
+            $body = $this->replaceNotificationPlaceholder($body, $url, $newest_minor_version, $current_version);
+        }
+
+        return $body;
+    }
+
+    public function getNotificationBodyTemplate(string $newest_major_version, string $newest_minor_version, string $current_version) : String
+    {
+        if($this->hasNewVersions($newest_major_version,  $newest_minor_version,  $current_version))
+        {
+            return ilUpdateNotificationPlugin::getInstance()->txt("notification_body_combined");
+        }
+        else if ($this->hasNewMajorVersionOnly($newest_major_version,  $newest_minor_version,  $current_version))
+        {
+            return ilUpdateNotificationPlugin::getInstance()->txt("notification_body_major");
+        }
+        else
+        {
+            return ilUpdateNotificationPlugin::getInstance()->txt("notification_body_minor");
+        }
+    }
+
+    public function hasNewVersions(string $newest_major_version, string $newest_minor_version, string $current_version) : bool
+    {
+        return ($current_version != $newest_major_version && $current_version != $newest_minor_version && $newest_major_version != $newest_minor_version);
+    }
+
+    public function hasNewMajorVersionOnly(string $newest_major_version, string $newest_minor_version, string $current_version) : bool
+    {
+        return ($current_version != $newest_major_version && $newest_major_version != $newest_minor_version);
+    }
+
+    public function replaceCombinedNotificationPlaceholder(String $body, String $url, String $newest_minor_version, string $major_release_url, string $newest_major_version) : string
+    {
         $body = str_replace('[MINOR_RELEASE_URL]', $url, $body);
         $body = str_replace('[MINOR_RELEASE_VERSION]', $newest_minor_version, $body);
         $body = str_replace('[MAJOR_RELEASE_URL]', $major_release_url, $body);
-        $body = str_replace('[MAJOR_RELEASE_VERSION]', $newest_version_numeric, $body);
+        $body = str_replace('[MAJOR_RELEASE_VERSION]', $newest_major_version, $body);
+        return $body;
+    }
 
+    public function replaceNotificationPlaceholder(String $body, String $url, String $current_version, String $newest_version) : string
+    {
+        $body = str_replace('[INSTALLED_VERSION]', $current_version, $body);
+        $body = str_replace('[RELEASE_VERSION]', $newest_version, $body);
+        $body = str_replace('[RELEASE_URL]', $url, $body);
         return $body;
     }
 
